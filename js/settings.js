@@ -1,4 +1,11 @@
 function getDeviceUrl() {
+  // When served directly from the ESP32, use the current host automatically
+  if (!window.location.hostname.includes('github.io') &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1') {
+    return window.location.origin;
+  }
+  // When served from GitHub Pages or localhost, use configured IP
   const mode = localStorage.getItem('netMode') || 'local';
   const ip   = localStorage.getItem(mode === 'local' ? 'localIp' : 'remoteIp') || '';
   if (!ip) return null;

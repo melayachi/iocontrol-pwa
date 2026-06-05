@@ -1,95 +1,363 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>IOControl</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0d1117">
-  <link rel="stylesheet" href="css/app.css">
-  <link rel="stylesheet" href="css/scanner.css">
-  <link rel="stylesheet" href="css/irrigengine.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IOControl</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#10b981;--text:#e6edf3;--muted:#8b949e;--danger:#f85149;--warn:#d29922;--nav-h:56px}
+body.theme-light{--bg:#f5f5f5;--surface:#fff;--surface2:#eee;--border:#ccc;--accent:#0d7a5f;--text:#111;--muted:#555;--danger:#cc2222;--warn:#a07000}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text);font-size:13px;min-height:100vh;padding-bottom:var(--nav-h)}
+.app-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.app-header-title{font-size:14px;font-weight:700;color:var(--accent);letter-spacing:2px;text-transform:uppercase}
+.app-header-right{display:flex;align-items:center;gap:8px}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;color:var(--muted);cursor:pointer;font-family:inherit;padding:6px 0;min-height:48px}
+.nav-btn.active{color:var(--accent)}
+.nav-icon{font-size:18px;line-height:1}
+.nav-label{font-size:10px;letter-spacing:.5px}
+.tab-page{display:none}
+.tab-page.active{display:block}
+.tab-body{padding:14px}
+.hidden{display:none!important}
+.fs-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100}
+.fs-panel{position:fixed;top:0;right:0;width:100vw;height:100vh;background:var(--surface);border-left:1px solid var(--border);z-index:101;display:flex;flex-direction:column;overflow:hidden;transform:translateX(100%);transition:transform .25s ease}
+.fs-panel.open{transform:translateX(0)}
+.fs-panel-header{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2);flex-shrink:0}
+.fs-panel-header h2{font-size:13px;color:var(--accent);letter-spacing:1px;text-transform:uppercase}
+.fs-panel-body{flex:1;overflow-y:auto;padding:14px}
+.fs-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding-top:20px}
+.fs-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px 12px 0 0;width:100%;max-width:520px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+.fs-modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface2);flex-shrink:0}
+.fs-modal-header h2{font-size:13px;color:var(--accent);letter-spacing:1px;text-transform:uppercase}
+.fs-modal-body{flex:1;overflow-y:auto;padding:14px 16px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dot-green{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.dot-grey{background:var(--muted)}
+.dot-orange{background:var(--warn);box-shadow:0 0 6px var(--warn)}
+.icon-btn{padding:6px 10px;min-height:36px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-size:15px;line-height:1}
+.icon-btn:active{color:var(--accent);border-color:var(--accent)}
+.back-btn{padding:6px 12px;min-height:36px;border-radius:5px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:inherit;font-size:12px}
+.back-btn:active{color:var(--text);border-color:var(--text)}
+button{padding:8px 12px;min-height:44px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-family:inherit;font-size:12px}
+button:active{background:var(--surface);border-color:var(--accent);color:var(--accent)}
+button.danger{border-color:var(--danger);color:var(--danger)}
+button.danger:active{background:#2b1010}
+button.btn-on{background:#0d2b1e;border-color:var(--accent);color:var(--accent)}
+input[type="text"],input[type="number"],input[type="password"],input[type="datetime-local"],select{background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:8px;font-family:inherit;font-size:13px;min-height:44px;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+input[type="checkbox"]{accent-color:var(--accent);width:auto;min-height:unset}
+label{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}
+.form-row{margin-bottom:12px}
+.two-col-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.section-title{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;letter-spacing:1px}
+.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.muted{color:var(--muted);font-size:11px}
+pre.log-box{background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--accent);padding:10px;margin-top:12px;max-height:120px;overflow:auto;font-size:11px;line-height:1.5}
+.settings-body{max-width:480px}
+.settings-section{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px}
+.settings-section h3{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px}
+.conn-status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:8px}
+.theme-toggle{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;width:fit-content}
+.theme-toggle button{min-height:36px;border:none;border-radius:0;padding:6px 18px;font-size:12px;background:var(--surface2);color:var(--muted)}
+.theme-toggle button.active{background:var(--accent);color:#fff}
+.ie-clock{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+/* scanner */
+.io-grid{display:flex;flex-wrap:wrap;gap:8px}
+.io-cell{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;flex:1 1 140px;max-width:calc(50% - 4px);display:flex;flex-direction:column;gap:4px}
+.io-cell.io-changed{border-color:var(--accent);box-shadow:0 0 6px rgba(16,185,129,.2)}
+.io-type-tag{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--muted)}
+.io-name{font-weight:600;color:var(--text);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.io-val{font-size:20px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+.io-write{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:4px}
+.io-write button{min-height:36px;padding:4px 10px;font-size:12px}
+.io-write input{width:70px;min-height:36px;padding:4px 6px}
+.io-err{font-size:10px;color:var(--danger);margin-top:3px}
+.sc-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px}
+.sc-card-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sc-card-title{font-size:13px;font-weight:700;color:var(--accent)}
+.badge-id{background:var(--surface2);color:var(--muted);border:1px solid var(--border);font-weight:normal}
+.sc-panel-toolbar{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2);position:sticky;top:0;z-index:5}
+.sc-panel-toolbar button{min-height:36px;font-size:12px}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--border);padding:6px 8px;font-size:12px;vertical-align:middle}
+th{background:var(--surface2);color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-size:10px}
+td{background:var(--surface)}
+.val-changed{color:var(--accent);font-weight:700}
+.type-block{margin-top:10px;border-top:1px solid var(--border);padding-top:10px;overflow-x:auto}
+.type-block table{min-width:480px}
+.hw-form-grid{display:grid;grid-template-columns:max-content 1fr;gap:8px 14px;align-items:center}
+.hw-form-grid label{color:var(--muted);font-size:12px;white-space:nowrap;margin:0}
+.hw-form-grid input[type="number"],.hw-form-grid input[type="text"]{width:100%}
+.hw-section-title{grid-column:1/-1;color:var(--accent);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding-top:8px;border-top:1px solid var(--border);margin-top:4px}
+.hw-section-title:first-child{border-top:none;margin-top:0;padding-top:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px}
+.scanner-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.scanner-head h3{font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.type-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.type-head h4{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.extra-card{border:1px solid var(--border);border-radius:6px;padding:10px;background:var(--surface2)}
+.extra-grid{display:flex;flex-wrap:wrap;gap:6px}
+.mini{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface);border-radius:20px;padding:3px 10px;font-size:11px}
+.mini input[type="number"],.mini input[type="text"]{width:80px;min-height:unset}
+.mini select{width:auto;min-width:80px;max-width:200px;min-height:unset}
+.cfg-section-head{display:block;width:100%;margin-top:8px;padding-top:6px;border-top:1px solid var(--border);font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent)}
+.cfg-section-head:first-child{padding-top:2px;margin-top:0}
+.cfg-legend-row{display:block;width:100%;margin-top:8px;padding-top:6px;border-top:1px solid var(--border)}
+.cfg-legend-btn{font-size:10px;padding:2px 9px;color:var(--muted);border:1px solid var(--border);border-radius:20px;background:none;cursor:pointer;font-family:inherit;min-height:unset}
+.cfg-legend-body{margin-top:6px;padding:6px 10px;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:6px}
+.cfg-legend-body table{width:100%;border-collapse:collapse}
+.cfg-legend-body td{padding:2px 4px;vertical-align:top;line-height:1.85;color:var(--muted);border:none}
+.cfg-legend-body td:first-child{white-space:nowrap;text-align:right;font-weight:700;color:var(--text);padding-right:8px;width:1%}
+.sw{display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:11px}
+.muted-tag{color:var(--muted);font-size:11px}
+.io-name-input{width:100%;min-width:80px;box-sizing:border-box}
+.io-table td,.io-table th{padding:4px 6px}
+.cfg-btn{padding:3px 7px;font-size:11px;color:var(--muted);min-height:unset}
+.detail-row td{background:var(--bg)}
+/* irrigengine */
+.ie-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:5px}
+.ie-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.ie-card-head .icon-btn{min-height:30px;padding:4px 8px;font-size:13px;flex-shrink:0}
+.ie-card-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px}
+.ie-card-detail{font-size:11px;color:var(--muted)}
+.ie-card-remaining{font-size:11px;color:var(--warn);font-weight:600}
+.badge-stopped{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.badge-running{background:#0d2b1e;color:var(--accent);border:1px solid var(--accent)}
+.badge-pending{background:#2b2210;color:var(--warn);border:1px solid var(--warn)}
+.badge-paused{background:#2b2210;color:var(--warn);border:1px solid var(--warn)}
+.badge-alarm{background:#2b1010;color:var(--danger);border:1px solid var(--danger)}
+.badge-cancelled,.badge-finished{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.ie-card-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.ie-card-actions button{min-height:36px;font-size:11px;padding:4px 10px}
+.btn-run{border-color:var(--accent)!important;color:var(--accent)!important;background:#0d2b1e!important}
+.btn-stop{border-color:var(--danger)!important;color:var(--danger)!important;background:#2b1010!important}
+.btn-pause{border-color:#b45309!important;color:#f59e0b!important;background:#2b2210!important}
+.btn-auto{border-color:var(--muted)!important;color:var(--muted)!important}
+.btn-hist{border-color:var(--border)!important;color:var(--muted)!important}
+.ie-tab-bar{display:flex;overflow-x:auto;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:5;-webkit-overflow-scrolling:touch}
+.ie-tab-btn{padding:10px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;font-family:inherit;font-size:11px;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;min-height:44px}
+.ie-tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.history-list{margin-top:10px}
+.history-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;gap:8px}
+.history-item:last-child{border-bottom:none}
+.history-dt{color:var(--muted);font-size:11px}
+.history-dur{color:var(--accent);font-weight:700;white-space:nowrap}
+.history-reason{font-size:10px;color:var(--muted);white-space:nowrap}
+</style>
 </head>
 <body class="theme-dark">
-  <main id="main">
-    <div id="tab-scanner" class="tab-page active">
-      <header class="app-header">
-        <span class="app-header-title">&#9889; IOScanner</span>
-        <div class="app-header-right">
-          <span id="sc-live-dot" class="dot dot-grey" title="Offline"></span>
-          <span id="sc-mqtt-dot" class="dot dot-grey" title="MQTT"></span>
-          <button class="icon-btn" onclick="scShowMQTT()" title="MQTT Config">&#127758;</button>
-          <button class="icon-btn" onclick="scShowHardware()" title="Hardware Config">&#9881;</button>
-          <button class="icon-btn" onclick="scOpenPanel()" title="Scanner Config">&#9776;</button>
-        </div>
-      </header>
-      <div id="sc-live-root" class="tab-body"></div>
-    </div>
-    <div id="tab-irrigengine" class="tab-page">
-      <header class="app-header">
-        <span class="app-header-title">&#128167; IrrigEngine</span>
-        <div class="app-header-right">
-          <span id="ie-live-dot" class="dot dot-grey" title="Offline"></span>
-          <span id="ie-mqtt-dot" class="dot dot-grey" title="MQTT"></span>
-          <span id="ie-clock" class="ie-clock">--:--:--</span>
-          <button class="icon-btn" onclick="ieShowWifi()" title="Device Settings">&#9881;</button>
-        </div>
-      </header>
-      <div id="ie-live-root" class="tab-body">
-        <section>
-          <h2 class="section-title">Zones</h2>
-          <div id="ie-zones-grid" class="two-col-grid"></div>
-        </section>
-        <section style="margin-top:16px">
-          <h2 class="section-title">Systems</h2>
-          <div id="ie-systems-grid" class="two-col-grid"></div>
-        </section>
+<main id="main">
+  <div id="tab-scanner" class="tab-page active">
+    <header class="app-header">
+      <span class="app-header-title">&#9889; IOScanner</span>
+      <div class="app-header-right">
+        <span id="sc-live-dot" class="dot dot-grey" title="Offline"></span>
+        <span id="sc-mqtt-dot" class="dot dot-grey" title="MQTT"></span>
+        <button class="icon-btn" onclick="scShowMQTT()" title="MQTT">&#127758;</button>
+        <button class="icon-btn" onclick="scShowHardware()" title="Hardware">&#9881;</button>
+        <button class="icon-btn" onclick="scOpenPanel()" title="Scanners">&#9776;</button>
       </div>
-    </div>
-    <div id="tab-settings" class="tab-page">
-      <header class="app-header">
-        <span class="app-header-title">&#9881; Settings</span>
-      </header>
-      <div class="tab-body settings-body" id="settings-body"></div>
-    </div>
-  </main>
-  <nav class="bottom-nav">
-    <button class="nav-btn active" onclick="switchTab('scanner')" id="nav-scanner">
-      <span class="nav-icon">&#9889;</span>
-      <span class="nav-label">IOScanner</span>
-    </button>
-    <button class="nav-btn" onclick="switchTab('irrigengine')" id="nav-irrigengine">
-      <span class="nav-icon">&#128167;</span>
-      <span class="nav-label">IrrigEngine</span>
-    </button>
-    <button class="nav-btn" onclick="switchTab('settings')" id="nav-settings">
-      <span class="nav-icon">&#9881;</span>
-      <span class="nav-label">Settings</span>
-    </button>
-  </nav>
-  <div id="fs-overlay" class="fs-overlay hidden" onclick="closeFsOverlay()"></div>
-  <div id="fs-panel" class="fs-panel hidden">
-    <div class="fs-panel-header">
-      <button class="back-btn" onclick="closeFsPanel()">&#8592; Back</button>
-      <h2 id="fs-panel-title">Panel</h2>
-    </div>
-    <div id="fs-panel-body" class="fs-panel-body"></div>
+    </header>
+    <div id="sc-live-root" class="tab-body"></div>
   </div>
-  <div id="fs-modal" class="fs-modal hidden">
-    <div class="fs-modal-box">
-      <div class="fs-modal-header">
-        <h2 id="fs-modal-title">Modal</h2>
-        <button class="icon-btn" onclick="closeFsModal()">&#10005;</button>
+  <div id="tab-irrigengine" class="tab-page">
+    <header class="app-header">
+      <span class="app-header-title">&#128167; IrrigEngine</span>
+      <div class="app-header-right">
+        <span id="ie-live-dot" class="dot dot-grey" title="Offline"></span>
+        <span id="ie-mqtt-dot" class="dot dot-grey" title="MQTT"></span>
+        <span id="ie-clock" class="ie-clock">--:--:--</span>
+        <button class="icon-btn" onclick="ieShowWifi()" title="Settings">&#9881;</button>
       </div>
-      <div id="fs-modal-body" class="fs-modal-body"></div>
+    </header>
+    <div id="ie-live-root" class="tab-body">
+      <section>
+        <h2 class="section-title">Zones</h2>
+        <div id="ie-zones-grid" class="two-col-grid"></div>
+      </section>
+      <section style="margin-top:16px">
+        <h2 class="section-title">Systems</h2>
+        <div id="ie-systems-grid" class="two-col-grid"></div>
+      </section>
     </div>
   </div>
-  <script src="js/app.js"></script>
-  <script src="js/settings.js"></script>
-  <script src="js/scanner.js"></script>
-  <script src="js/irrigengine.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-  </script>
+  <div id="tab-settings" class="tab-page">
+    <header class="app-header">
+      <span class="app-header-title">&#9881; Settings</span>
+    </header>
+    <div class="tab-body settings-body" id="settings-body"></div>
+  </div>
+</main>
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="switchTab('scanner')" id="nav-scanner">
+    <span class="nav-icon">&#9889;</span><span class="nav-label">IOScanner</span>
+  </button>
+  <button class="nav-btn" onclick="switchTab('irrigengine')" id="nav-irrigengine">
+    <span class="nav-icon">&#128167;</span><span class="nav-label">IrrigEngine</span>
+  </button>
+  <button class="nav-btn" onclick="switchTab('settings')" id="nav-settings">
+    <span class="nav-icon">&#9881;</span><span class="nav-label">Settings</span>
+  </button>
+</nav>
+<div id="fs-overlay" class="fs-overlay hidden" onclick="closeFsOverlay()"></div>
+<div id="fs-panel" class="fs-panel hidden">
+  <div class="fs-panel-header">
+    <button class="back-btn" onclick="closeFsPanel()">&#8592; Back</button>
+    <h2 id="fs-panel-title">Panel</h2>
+  </div>
+  <div id="fs-panel-body" class="fs-panel-body"></div>
+</div>
+<div id="fs-modal" class="fs-modal hidden">
+  <div class="fs-modal-box">
+    <div class="fs-modal-header">
+      <h2 id="fs-modal-title">Modal</h2>
+      <button class="icon-btn" onclick="closeFsModal()">&#10005;</button>
+    </div>
+    <div id="fs-modal-body" class="fs-modal-body"></div>
+  </div>
+</div>
+<script>
+const TABS=['scanner','irrigengine','settings'];
+function switchTab(name){TABS.forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===name);document.getElementById('nav-'+t).classList.toggle('active',t===name)});if(name==='settings')renderSettings();if(name==='scanner')scInit();if(name==='irrigengine')ieInit();localStorage.setItem('lastTab',name)}
+function setTheme(theme){document.body.classList.toggle('theme-dark',theme==='dark');document.body.classList.toggle('theme-light',theme==='light');localStorage.setItem('theme',theme);document.querySelectorAll('.theme-toggle button').forEach(btn=>{btn.classList.toggle('active',btn.dataset.theme===theme)})}
+function getTheme(){return localStorage.getItem('theme')||'dark'}
+function escHtml(str){return String(str??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function openFsPanel(title,bodyHtml){document.getElementById('fs-panel-title').textContent=title;document.getElementById('fs-panel-body').innerHTML=bodyHtml;document.getElementById('fs-overlay').classList.remove('hidden');requestAnimationFrame(()=>{document.getElementById('fs-panel').classList.remove('hidden');requestAnimationFrame(()=>document.getElementById('fs-panel').classList.add('open'))})}
+function closeFsPanel(){const p=document.getElementById('fs-panel');p.classList.remove('open');setTimeout(()=>{p.classList.add('hidden');document.getElementById('fs-overlay').classList.add('hidden')},260)}
+function openFsModal(title,bodyHtml){document.getElementById('fs-modal-title').textContent=title;document.getElementById('fs-modal-body').innerHTML=bodyHtml;document.getElementById('fs-modal').classList.remove('hidden')}
+function closeFsModal(){document.getElementById('fs-modal').classList.add('hidden')}
+function closeFsOverlay(){closeFsPanel()}
+document.addEventListener('DOMContentLoaded',()=>{setTheme(getTheme());switchTab(localStorage.getItem('lastTab')||'scanner')});
+function getDeviceUrl(){if(!window.location.hostname.includes('github.io')&&window.location.hostname!=='localhost'&&window.location.hostname!=='127.0.0.1')return window.location.origin;const mode=localStorage.getItem('netMode')||'local';const ip=localStorage.getItem(mode==='local'?'localIp':'remoteIp')||'';if(!ip)return null;return'http://'+ip}
+function saveSettings(){localStorage.setItem('localIp',document.getElementById('s-local-ip').value.trim());localStorage.setItem('remoteIp',document.getElementById('s-remote-ip').value.trim())}
+function loadSettings(){const el=id=>document.getElementById(id);if(el('s-local-ip'))el('s-local-ip').value=localStorage.getItem('localIp')||'';if(el('s-remote-ip'))el('s-remote-ip').value=localStorage.getItem('remoteIp')||'';setNetMode(localStorage.getItem('netMode')||'local',false)}
+function setNetMode(mode,save){if(save!==false)localStorage.setItem('netMode',mode);document.querySelectorAll('.net-mode-btn').forEach(btn=>{btn.classList.toggle('active',btn.dataset.mode===mode)})}
+async function testConnection(){const url=getDeviceUrl();const el=document.getElementById('s-conn-status');if(!url){el.textContent='No IP configured';return}el.textContent='Testing...';try{const r=await fetch(url+'/api/zones',{signal:AbortSignal.timeout(4000)});el.innerHTML=r.ok?'<span class="dot dot-green" style="display:inline-block"></span> Connected ('+r.status+')':'<span class="dot dot-orange" style="display:inline-block"></span> HTTP '+r.status}catch{el.innerHTML='<span class="dot dot-grey" style="display:inline-block"></span> Unreachable'}}
+function renderSettings(){const mode=localStorage.getItem('netMode')||'local';document.getElementById('settings-body').innerHTML=`<div class="settings-section"><h3>Appearance</h3><div class="theme-toggle"><button data-theme="dark" onclick="setTheme('dark')" class="${getTheme()==='dark'?'active':''}">Dark</button><button data-theme="light" onclick="setTheme('light')" class="${getTheme()==='light'?'active':''}">Light</button></div></div><div class="settings-section"><h3>Device Connection</h3><div class="form-row"><label>Local IP Address</label><input type="text" id="s-local-ip" placeholder="192.168.1.100" inputmode="url" onchange="saveSettings()"></div><div class="form-row"><label>Remote IP / Hostname (optional)</label><input type="text" id="s-remote-ip" placeholder="mysite.duckdns.org" inputmode="url" onchange="saveSettings()"></div><div class="form-row"><label>Active Network</label><div class="theme-toggle"><button class="net-mode-btn ${mode==='local'?'active':''}" data-mode="local" onclick="setNetMode('local');renderSettings()">Local</button><button class="net-mode-btn ${mode==='remote'?'active':''}" data-mode="remote" onclick="setNetMode('remote');renderSettings()">Remote</button></div></div><button onclick="testConnection()">Test Connection</button><div class="conn-status" id="s-conn-status"></div></div><div class="settings-section"><h3>About</h3><p class="muted" style="margin-bottom:8px">IOControl v1.0</p><p class="muted"><a href="#" onclick="openOriginalUI('scanner')" style="color:var(--accent)">Open IOScanner web UI &#8599;</a></p><p class="muted" style="margin-top:4px"><a href="#" onclick="openOriginalUI('irrigengine')" style="color:var(--accent)">Open IrrigEngine web UI &#8599;</a></p></div>`;loadSettings()}
+function openOriginalUI(which){const url=getDeviceUrl();if(!url){alert('Configure device IP in Settings first.');return}window.open(url+(which==='scanner'?'/Scanner/dashboard.html':'/'),'_blank')}
+</script>
+<script>
+const VALUE_TYPE_OPTIONS=[{v:'TYPE_BIT',l:'Bit'},{v:'TYPE_BIT_REG',l:'Bit in Reg'},{v:'TYPE_U8',l:'U8'},{v:'TYPE_U16',l:'U16'},{v:'TYPE_I16',l:'I16'},{v:'TYPE_U32',l:'U32'},{v:'TYPE_I32',l:'I32'},{v:'TYPE_F32',l:'F32'}];
+let scModel={scanners:[]};let scEs=null;let scPollTimer=null;let scSseRetryTimer=null;let scInited=false;const scLiveEditState={};const scDetOpen={};
+function scApi(path){const base=getDeviceUrl();return base?base+'/Scanner'+path:null}
+async function scFetch(path,method='GET',body=null){const url=scApi(path);if(!url)return null;try{const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:body!=null?JSON.stringify(body):undefined});const txt=await r.text();try{return JSON.parse(txt)}catch{return{raw:txt,http:r.status}}}catch{return null}}
+function scSetStatus(status){const el=document.getElementById('sc-live-dot');if(!el)return;el.className='dot '+({online:'dot-green',offline:'dot-grey',poll:'dot-orange'}[status]??'dot-grey');el.title={online:'SSE: Live',offline:'Offline',poll:'Polling'}[status]??status}
+function scNormalize(data){const raw=data?.scanners??[];const scanners=Array.isArray(raw)?raw.map(z=>{z.ios=z.ios??{};for(const t of['IO_MODBUS','IO_I2C','IO_GPIO','IO_SHIFT'])if(!Array.isArray(z.ios[t]))z.ios[t]=[];return z}):[];return{scanners}}
+function scTypeLabel(t){return{IO_MODBUS:'MODBUS',IO_I2C:'I2C',IO_GPIO:'GPIO',IO_SHIFT:'SHIFT'}[t]??t}
+function scToVtLabel(v){if(typeof v==='number')return VALUE_TYPE_OPTIONS[Math.max(0,Math.trunc(v))]?.v??'TYPE_U8';const s=String(v??'');return VALUE_TYPE_OPTIONS.some(o=>o.v===s)?s:'TYPE_U8'}
+function scNormShift(v){const n=Number(v??0);return Number.isFinite(n)?(Math.trunc(n)>>>0)&0xFF:0}
+function scBitFromMask(mask){const m=Number(mask??0);for(let b=0;b<32;b++){if(m&(1<<b))return b}return 0}
+function scAsBitOnOff(v){return(v===true||v===1||v==='1')?'ON':'OFF'}
+function scModbusWritable(fc){return![2,4].includes(Number(fc??3))}
+function scFormatVal(io,t){if(t==='IO_GPIO')return io.pinType==='DIGITAL_PIN'?scAsBitOnOff(io.value):String(io.value??0);if(t==='IO_SHIFT'){const vt=scToVtLabel(io.valueType??2);if(vt==='TYPE_BIT')return scAsBitOnOff(io.value);if(vt==='TYPE_BIT_REG'){const mask=scNormShift(io.bitMask??0);return'B'+scBitFromMask(mask)+':'+((scNormShift(io.value??0)&mask)!==0?'ON':'OFF')}return String(io.value??0)}if(t==='IO_MODBUS'){const vt=scToVtLabel(io.valueType??3);if(vt==='TYPE_BIT')return'B0:'+(Number(io.value)?'ON':'OFF');if(vt==='TYPE_BIT_REG')return'B'+scBitFromMask(io.bitMask)+':'+(Number(io.value)?'ON':'OFF')}if(t==='IO_I2C'){if(io.isRTC)return io.rtcStr||'--:--:-- --/--/--';const vt=scToVtLabel(io.valueType??2);if(vt==='TYPE_BIT')return'B0:'+(Number(io.value)?'ON':'OFF');if(vt==='TYPE_BIT_REG')return'B'+scBitFromMask(io.bitMask)+':'+(Number(io.value)?'ON':'OFF')}return String(io.value??0)}
+function scWriteCtrl(sIdx,t,io){if(t==='IO_GPIO'){if(io.isInput!==false)return'';if(io.pinType==='ANALOG_PIN')return`<input type="number" step="0.01" min="0" max="1" value="0" inputmode="decimal" id="gpiow_${sIdx}_${io.ioIdx}" oninput="scLiveEditState[this.id]=this.value"><button onclick="scGPIOWrite(${sIdx},${io.ioIdx})">Set</button>`;const on=io.value===1||io.value===true;return`<button class="${on?'btn-on':''}" onclick="scGPIOToggle(${sIdx},${io.ioIdx},${on?0:1})">${on?'ON→0':'OFF→1'}</button>`}if(t==='IO_SHIFT'&&!io.isInput){const vt=scToVtLabel(io.valueType??2);if(vt==='TYPE_BIT'){const on=io.value===1||io.value===true;return`<button class="${on?'btn-on':''}" onclick="scShiftToggle(${sIdx},${io.ioIdx},${on?0:1})">${on?'ON→0':'OFF→1'}</button>`}const id=`shiftw_${sIdx}_${io.ioIdx}`,val=scLiveEditState[id]??(io.value??0);return`<input type="number" min="0" max="255" value="${val}" inputmode="numeric" id="${id}" oninput="scLiveEditState[this.id]=this.value"><button onclick="scShiftWrite(${sIdx},${io.ioIdx})">Set</button>`}if(t==='IO_MODBUS'){if(!scModbusWritable(io.functionCode)||io.commEnable===false)return'';const vt=scToVtLabel(io.valueType??3);if(vt==='TYPE_BIT'||vt==='TYPE_BIT_REG'){const on=Number(io.value)!==0,bp=vt==='TYPE_BIT_REG'?scBitFromMask(io.bitMask):0;return`<button class="${on?'btn-on':''}" onclick="scModbusWrite(${sIdx},${io.ioIdx},${on?0:1})">B${bp}:${on?'ON→0':'OFF→1'}</button>`}const id=`mbw_${sIdx}_${io.ioIdx}`,val=scLiveEditState[id]??(io.value??0);return`<input type="number" value="${val}" inputmode="numeric" id="${id}" oninput="scLiveEditState[this.id]=this.value"><button onclick="scModbusWrite(${sIdx},${io.ioIdx})">Set</button>`}if(t==='IO_I2C'){if(io.isRTC)return`<input type="datetime-local" id="rtcw_${sIdx}_${io.ioIdx}"><button onclick="scRTCSet(${sIdx},${io.ioIdx})">Set</button>`;if(io.isInput!==false)return'';const vt=scToVtLabel(io.valueType??2);if(vt==='TYPE_BIT'||vt==='TYPE_BIT_REG'){const on=Number(io.value)!==0,bp=vt==='TYPE_BIT_REG'?scBitFromMask(io.bitMask):0;return`<button class="${on?'btn-on':''}" onclick="scI2CWrite(${sIdx},${io.ioIdx},${on?0:1})">B${bp}:${on?'ON→0':'OFF→1'}</button>`}const id=`i2cw_${sIdx}_${io.ioIdx}`,val=scLiveEditState[id]??(io.value??0);return`<input type="number" value="${val}" inputmode="numeric" id="${id}" oninput="scLiveEditState[this.id]=this.value"><button onclick="scI2CWrite(${sIdx},${io.ioIdx})">Set</button>`}return''}
+function scRenderLive(data){const root=document.getElementById('sc-live-root');if(!root)return;const ae=document.activeElement;if(ae?.tagName==='INPUT'&&root.contains(ae))return;if(!data.scanners.length){root.innerHTML='<p class="muted" style="padding:14px">No scanners configured.</p>';return}let html='';data.scanners.forEach((z,sIdx)=>{html+=`<div class="sc-card"><div class="sc-card-head"><span class="sc-card-title">${escHtml(z.name)}</span><span class="badge badge-id">ID:${z.scannerId}</span></div><div class="io-grid">`;for(const t of['IO_MODBUS','IO_I2C','IO_GPIO','IO_SHIFT']){for(const io of(z.ios[t]??[])){if(!io.active||io.initOnly)continue;const val=scFormatVal(io,t),ctrl=scWriteCtrl(sIdx,t,io);const tcpTag=(t==='IO_MODBUS'&&(io.transport??'RTU')==='TCP')?' <span style="color:var(--warn);font-size:9px">TCP</span>':'';html+=`<div class="io-cell${io.changed?' io-changed':''}"><div class="io-type-tag">${scTypeLabel(t)}${tcpTag}</div><div class="io-name">${escHtml(io.name)}</div><div class="io-val" id="val_${sIdx}_${t}_${io.ioIdx}">${escHtml(val)}</div>${ctrl?`<div class="io-write">${ctrl}</div>`:''}</div>`}}html+='</div></div>'});root.innerHTML=html;for(const[id,val]of Object.entries(scLiveEditState)){const el=document.getElementById(id);if(el)el.value=val}}
+const _scInFlight=new Set();
+function scGuarded(key,fn){if(_scInFlight.has(key))return;_scInFlight.add(key);Promise.resolve().then(fn).finally(()=>_scInFlight.delete(key))}
+function scGPIOToggle(sIdx,ioIdx,val){scGuarded('gpio_'+sIdx+'_'+ioIdx,()=>scFetch('/api/gpio/write','POST',{scannerIdx:sIdx,ioIdx,value:val}))}
+function scGPIOWrite(sIdx,ioIdx){const el=document.getElementById('gpiow_'+sIdx+'_'+ioIdx);if(el)scGuarded('gpio_'+sIdx+'_'+ioIdx,()=>scFetch('/api/gpio/write','POST',{scannerIdx:sIdx,ioIdx,value:parseFloat(el.value)}))}
+function scShiftToggle(sIdx,ioIdx,val){scGuarded('shift_'+sIdx+'_'+ioIdx,()=>scFetch('/api/shift/write','POST',{scannerIdx:sIdx,ioIdx,value:val}))}
+function scShiftWrite(sIdx,ioIdx){const el=document.getElementById('shiftw_'+sIdx+'_'+ioIdx);if(el)scGuarded('shift_'+sIdx+'_'+ioIdx,()=>scFetch('/api/shift/write','POST',{scannerIdx:sIdx,ioIdx,value:parseInt(el.value)}))}
+function scModbusWrite(sIdx,ioIdx,val){if(val===undefined){const el=document.getElementById('mbw_'+sIdx+'_'+ioIdx);val=el?parseFloat(el.value):0}scGuarded('mb_'+sIdx+'_'+ioIdx,()=>scFetch('/api/modbus/write','POST',{scannerIdx:sIdx,ioIdx,value:val}))}
+function scI2CWrite(sIdx,ioIdx,val){if(val===undefined){const el=document.getElementById('i2cw_'+sIdx+'_'+ioIdx);val=el?parseFloat(el.value):0}scGuarded('i2c_'+sIdx+'_'+ioIdx,()=>scFetch('/api/i2c/write','POST',{scannerIdx:sIdx,ioIdx,value:val}))}
+function scRTCSet(sIdx,ioIdx){const el=document.getElementById('rtcw_'+sIdx+'_'+ioIdx);if(!el)return;scGuarded('rtc_'+sIdx+'_'+ioIdx,()=>scFetch('/api/i2c/rtcset','POST',{scannerIdx:sIdx,ioIdx,ts:Math.floor(new Date(el.value).getTime()/1000)}))}
+function scConnectSSE(){const url=scApi('/events');if(!url){scSetStatus('offline');return}if(scEs){scEs.close();scEs=null}try{scEs=new EventSource(url);scEs.onopen=()=>{scSetStatus('online');scStopPoll()};scEs.onmessage=ev=>{try{scModel=scNormalize(JSON.parse(ev.data));scRenderLive(scModel)}catch{}};scEs.onerror=()=>{scEs.close();scEs=null;scSetStatus('poll');scStartPoll();if(!scSseRetryTimer)scSseRetryTimer=setTimeout(()=>{scSseRetryTimer=null;scConnectSSE()},15000)}}catch{scSetStatus('poll');scStartPoll()}}
+function scStartPoll(){if(scPollTimer)return;scPollTimer=setInterval(async()=>{const d=await scFetch('/api/values');if(d){scModel=scNormalize(d);scRenderLive(scModel)}},2000)}
+function scStopPoll(){if(scPollTimer){clearInterval(scPollTimer);scPollTimer=null}}
+function scInit(){if(!getDeviceUrl()){document.getElementById('sc-live-root').innerHTML='<p class="muted" style="padding:14px">Configure device IP in Settings first.</p>';return}if(!scInited){scInited=true;scConnectSSE()}}
+function scLog(msg){const el=document.getElementById('sc-log');if(el)el.textContent='['+new Date().toLocaleTimeString()+'] '+msg+'\n'+el.textContent}
+function scOpenPanel(){openFsPanel('Scanner Config','<div class="sc-panel-toolbar"><button onclick="scReload()">&#8635; Reload</button><button onclick="scSave()">Save</button><button onclick="scAddScanner()">+ Scanner</button></div><div id="sc-scanners-body" style="padding:14px"></div><pre class="log-box" id="sc-log"></pre>');scRenderConfig()}
+async function scReload(){const d=await scFetch('/api/scanners');if(d){scModel=scNormalize(d);scRenderConfig();scLog('Reloaded')}else scLog('Reload failed')}
+async function scSave(){const r=await scFetch('/api/scanners','POST',scModel);scLog(r?.ok?'Saved OK':'Save failed')}
+async function scAddScanner(){if(scModel.scanners.length>=12){scLog('Max 12 scanners');return}scModel.scanners.push({name:'Scanner '+(scModel.scanners.length+1),scannerId:scModel.scanners.length+1,ios:{IO_MODBUS:[],IO_I2C:[],IO_GPIO:[],IO_SHIFT:[]}});scRenderConfig()}
+async function scDeleteScanner(idx){if(!confirm('Delete scanner?'))return;scModel.scanners.splice(idx,1);scRenderConfig()}
+function scRenderConfig(){const body=document.getElementById('sc-scanners-body');if(!body)return;body.innerHTML=scBuildConfigHtml()}
+function scToHex(value,width){width=width??2;const n=Number(value??0);if(!Number.isFinite(n))return'0x00';return'0x'+Math.max(0,Math.trunc(n)).toString(16).toUpperCase().padStart(width,'0')}
+function scParseHexOrDec(value){if(typeof value==='number')return Number.isFinite(value)?Math.trunc(value):0;const s=String(value??'').trim();if(!s)return 0;if(/^0x[0-9a-f]+$/i.test(s))return parseInt(s,16);const n=Number(s);return Number.isFinite(n)?Math.trunc(n):0}
+function scToVtIndex(v){if(typeof v==='number'&&Number.isFinite(v))return Math.max(0,Math.trunc(v));const idx=VALUE_TYPE_OPTIONS.findIndex(o=>o.v===String(v??''));return idx>=0?idx:2}
+const SC_MODBUS_FC_OPTIONS=[{v:1,l:'FC01 Read Coils'},{v:2,l:'FC02 Read Discrete Inputs'},{v:3,l:'FC03 Read Holding Regs'},{v:4,l:'FC04 Read Input Regs'}];
+function scSetIOField(scanner,t,ioIdx,field,value){const io=scanner.ios[t]?.find(x=>x.ioIdx===ioIdx);if(io)io[field]=value}
+window.scSetIOField=scSetIOField;
+function scToggleExtraDetails(sIdx,t,ioIdx){const key=sIdx+':'+t+':'+ioIdx;scDetOpen[key]=!scDetOpen[key];scRenderConfig()}
+window.scToggleExtraDetails=scToggleExtraDetails;
+window.scAddIO=function(sIdx,t){const scanner=scModel.scanners[sIdx];if(!scanner)return;const arr=scanner.ios[t];if(arr.length>=8){scLog(scTypeLabel(t)+' limit reached (8 per scanner)');return}const ioIdx=arr.reduce((m,x)=>Math.max(m,Number(x.ioIdx)||0),-1)+1;const base={ioIdx,name:scTypeLabel(t)+' '+ioIdx,active:true,scale:1.0,initOnly:false,initValue:0};if(t==='IO_SHIFT')Object.assign(base,{isInput:false,value:0,writeValue:0,dataPin:0,clockPin:0,latchPin:-1,outEnablePin:-1,outEnabled:true,reverseOut:false,valueType:2,bitMask:0});else if(t==='IO_GPIO')Object.assign(base,{pinType:'DIGITAL_PIN',pin:0,pullup:false,isInput:true,writeValue:0});else if(t==='IO_I2C')Object.assign(base,{deviceAddr:0x40,regAddr:0,regSize:1,quantity:1,valueType:2,bitMask:0,writeValue:0,isInput:true,isRTC:false,rtcCount:7,rtcStopReg:255,rtcStr:''});else if(t==='IO_MODBUS')Object.assign(base,{slaveId:1,functionCode:0x03,startAddress:0,quantity:1,valueType:3,bitMask:0,writeValue:0});arr.push(base);scRenderConfig()};
+window.scDeleteIO=function(sIdx,t,ioIdx){const z=scModel.scanners[sIdx];if(z)z.ios[t]=z.ios[t].filter(x=>Number(x.ioIdx)!==Number(ioIdx));scRenderConfig()};
+window.scApplyShiftWrite=(sIdx,ioIdx)=>scGuarded('sh_'+sIdx+'_'+ioIdx,async()=>{const io=scModel.scanners[sIdx]?.ios['IO_SHIFT']?.find(x=>Number(x.ioIdx)===Number(ioIdx));if(!io)return;const vt=scToVtLabel(io.valueType??2);let val=Number(io.writeValue??0);if(vt==='TYPE_BIT')val=val?1:0;const r=await scFetch('/api/shift/write','POST',{scannerIdx:sIdx,ioIdx,value:val});scLog('SHIFT write: '+JSON.stringify(r))});
+window.scApplyShiftBitToggle=(sIdx,ioIdx,bitVal)=>scGuarded('sh_'+sIdx+'_'+ioIdx,async()=>{const r=await scFetch('/api/shift/write','POST',{scannerIdx:sIdx,ioIdx,value:bitVal});scLog('SHIFT bit: '+JSON.stringify(r))});
+window.scApplyShiftOE=(sIdx,ioIdx,enabled)=>scGuarded('shoe_'+sIdx+'_'+ioIdx,async()=>{const r=await scFetch('/api/shift/oe','POST',{scannerIdx:sIdx,ioIdx,enabled:!!enabled});scLog('SHIFT OE: '+JSON.stringify(r))});
+window.scApplyModbusWrite=(sIdx,ioIdx,val)=>scGuarded('mb_'+sIdx+'_'+ioIdx,async()=>{const io=scModel.scanners[sIdx]?.ios['IO_MODBUS']?.find(x=>Number(x.ioIdx)===Number(ioIdx));if(!io)return;const writeVal=val!==undefined?val:Number(io.writeValue??0);const r=await scFetch('/api/modbus/write','POST',{scannerIdx:sIdx,ioIdx,value:writeVal});scLog('MODBUS write: '+JSON.stringify(r))});
+window.scApplyI2CWrite=(sIdx,ioIdx,val)=>scGuarded('i2c_'+sIdx+'_'+ioIdx,async()=>{const io=scModel.scanners[sIdx]?.ios['IO_I2C']?.find(x=>Number(x.ioIdx)===Number(ioIdx));if(!io)return;const writeVal=val!==undefined?val:Number(io.writeValue??0);const r=await scFetch('/api/i2c/write','POST',{scannerIdx:sIdx,ioIdx,value:writeVal});scLog('I2C write: '+JSON.stringify(r))});
+window.scApplyGPIOWrite=(sIdx,ioIdx)=>scGuarded('gpio_'+sIdx+'_'+ioIdx,async()=>{const io=scModel.scanners[sIdx]?.ios['IO_GPIO']?.find(x=>Number(x.ioIdx)===Number(ioIdx));if(!io)return;const payload=io.pinType==='ANALOG_PIN'?{scannerIdx:sIdx,ioIdx,scaledValue:Number(io.writeScaledValue??0)}:{scannerIdx:sIdx,ioIdx,value:Number(io.writeValue??0)};const r=await scFetch('/api/gpio/write','POST',payload);scLog('GPIO write: '+JSON.stringify(r))});
+window.scToggleCfgLegend=function(id){const body=document.getElementById(id);const btn=document.getElementById(id+'_btn');if(!body||!btn)return;if(body.style.display==='none'){body.style.display='';btn.innerHTML='? Fields &#9650;'}else{body.style.display='none';btn.innerHTML='? Fields &#9660;'}};
+function scBuildExtraConfig(sIdx,t,io){const SI='scModel.scanners['+sIdx+']';const sif=(f,e)=>'scSetIOField('+SI+",'"+t+"',"+io.ioIdx+",'"+f+"',"+e+')';const mq=(io)=>'<div class="mini">MQTT <input type="checkbox"'+(io.mqttEnable?' checked':'')+' onchange="'+sif('mqttEnable','this.checked')+';scRenderConfig()"/></div>'+(io.mqttEnable?'<div class="mini">Min Interval(s) <input type="number" min="0" value="'+(io.mqttMinInterval??0)+'" style="width:60px" onchange="'+sif('mqttMinInterval','Number(this.value)')+'"/></div><div class="mini">Dead Band <input type="number" min="0" step="0.1" value="'+(io.mqttDeadBand??0)+'" style="width:65px" onchange="'+sif('mqttDeadBand','Number(this.value)')+'"/></div>':'');const legId='cfgleg_'+sIdx+'_'+io.ioIdx;const leg=(html)=>'<div class="cfg-legend-row"><button id="'+legId+'_btn" class="cfg-legend-btn" onclick="scToggleCfgLegend(\''+legId+'\')">? Fields &#9660;</button></div><div id="'+legId+'" class="cfg-legend-body" style="display:none"><table>'+html+'</table></div>';if(t==='IO_MODBUS'){const cv=scToVtLabel(io.valueType??3);const tcp=(io.transport??'RTU')==='TCP';const tcpF=tcp?'<div class="mini">IP <input type="text" value="'+escHtml(io.tcpIp??'')+'" style="width:110px" onchange="'+sif('tcpIp','this.value')+'"/></div><div class="mini">Port <input type="number" value="'+(io.tcpPort??502)+'" style="width:65px" onchange="'+sif('tcpPort','Number(this.value)')+'"/></div><div class="mini">Unit ID <input type="number" value="'+(io.slaveId??1)+'" style="width:60px" onchange="'+sif('slaveId','Number(this.value)')+'"/></div>':'<div class="mini">Slave ID <input type="number" value="'+(io.slaveId??1)+'" style="width:60px" onchange="'+sif('slaveId','Number(this.value)')+'"/></div>';return'<div class="cfg-section-head">Connection</div><div class="mini">Transport <select onchange="'+sif('transport','this.value')+';scRenderConfig()"><option value="RTU"'+(!tcp?' selected':'')+'>RTU</option><option value="TCP"'+(tcp?' selected':'')+'>TCP</option></select></div>'+tcpF+'<div class="cfg-section-head">Register</div><div class="mini">FC <select onchange="'+sif('functionCode','Number(this.value)')+'">'+SC_MODBUS_FC_OPTIONS.map(o=>'<option value="'+o.v+'"'+((io.functionCode??3)===o.v?' selected':'')+'>'+o.l+'</option>').join('')+'</select></div><div class="mini">Addr <input type="number" value="'+(io.startAddress??0)+'" style="width:75px" onchange="'+sif('startAddress','Number(this.value)')+'"/></div><div class="mini">Qty <input type="number" value="'+(io.quantity??1)+'" style="width:55px" onchange="'+sif('quantity','Number(this.value)')+'"/></div><div class="cfg-section-head">Data</div><div class="mini">Type <select onchange="'+sif('valueType','scToVtIndex(this.value)')+'">'+VALUE_TYPE_OPTIONS.map(o=>'<option value="'+o.v+'"'+(cv===o.v?' selected':'')+'>'+o.l+'</option>').join('')+'</select></div><div class="mini">BitMask <input type="text" value="'+scToHex(io.bitMask??0,2)+'" style="width:80px" onchange="'+sif('bitMask','scParseHexOrDec(this.value)')+'"/></div>'+(['TYPE_U32','TYPE_I32','TYPE_F32'].includes(cv)?'<div class="mini">Word Swap <input type="checkbox"'+(io.wordSwap?' checked':'')+' onchange="'+sif('wordSwap','this.checked')+'"/></div>':'')+'<div class="cfg-section-head">Options</div><div class="mini">Comm En <input type="checkbox"'+(io.commEnable!==false?' checked':'')+' onchange="'+sif('commEnable','this.checked')+'"/></div><div class="mini">Init Only <input type="checkbox"'+(io.initOnly?' checked':'')+' onchange="'+sif('initOnly','this.checked')+';scRenderConfig()"/></div>'+(io.initOnly?'<div class="mini">Init Val <input type="number" value="'+(io.initValue??0)+'" style="width:75px" onchange="'+sif('initValue','Number(this.value)')+'"/></div>':'')+mq(io)+leg('<tr><td>FC</td><td>FC3=holding FC4=input FC1=coils FC2=discrete</td></tr><tr><td>Addr</td><td>0-based register address</td></tr><tr><td>Type</td><td>U16/I16/U32/I32/F32/Bit/Bit-in-Reg</td></tr><tr><td>MQTT</td><td>Publish on change; subscribe for remote write</td></tr>')}if(t==='IO_I2C'){const cv=scToVtLabel(io.valueType??2);return'<div class="cfg-section-head">Device</div><div class="mini">Dev Addr <input type="text" value="'+scToHex(io.deviceAddr,2)+'" style="width:70px" onchange="'+sif('deviceAddr','scParseHexOrDec(this.value)')+'"/></div><div class="mini">Reg Addr <input type="text" value="'+scToHex(io.regAddr??0,2)+'" style="width:70px" onchange="'+sif('regAddr','scParseHexOrDec(this.value)')+'"/></div><div class="mini">Reg Size <select onchange="'+sif('regSize','Number(this.value)')+'"><option value="0"'+((io.regSize??1)===0?' selected':'')+'>AUTO</option><option value="1"'+((io.regSize??1)===1?' selected':'')+'>8-bit</option><option value="2"'+((io.regSize??1)===2?' selected':'')+'>16-bit</option></select></div><div class="mini">Qty <input type="number" value="'+(io.quantity??1)+'" style="width:55px" onchange="'+sif('quantity','Number(this.value)')+'"/></div><div class="cfg-section-head">Data</div><div class="mini">Type <select onchange="'+sif('valueType','scToVtIndex(this.value)')+'">'+VALUE_TYPE_OPTIONS.map(o=>'<option value="'+o.v+'"'+(cv===o.v?' selected':'')+'>'+o.l+'</option>').join('')+'</select></div><div class="mini">BitMask <input type="text" value="'+scToHex(io.bitMask??0,2)+'" style="width:80px" onchange="'+sif('bitMask','scParseHexOrDec(this.value)')+'"/></div><div class="mini">Dir <select onchange="'+sif('isInput',"this.value==='input'")+'" ><option value="input"'+(io.isInput!==false?' selected':'')+'>Input</option><option value="output"'+(io.isInput===false?' selected':'')+'>Output</option></select></div><div class="cfg-section-head">Options</div><div class="mini">RTC <input type="checkbox"'+(io.isRTC?' checked':'')+' onchange="'+sif('isRTC','this.checked')+';scRenderConfig()"/></div>'+(io.isRTC?'<div class="mini">Bytes <input type="number" min="1" max="8" value="'+(io.rtcCount??7)+'" style="width:55px" onchange="'+sif('rtcCount','Number(this.value)')+'"/></div>':'')+'<div class="mini">Init Only <input type="checkbox"'+(io.initOnly?' checked':'')+' onchange="'+sif('initOnly','this.checked')+';scRenderConfig()"/></div>'+(io.initOnly?'<div class="mini">Init Val <input type="number" value="'+(io.initValue??0)+'" style="width:75px" onchange="'+sif('initValue','Number(this.value)')+'"/></div>':'')+mq(io)+leg('<tr><td>Dev Addr</td><td>7-bit I2C address (hex)</td></tr><tr><td>Type</td><td>U16/I16/Bit/Bit-in-Reg/F32</td></tr><tr><td>MQTT</td><td>Publish on change</td></tr>')}if(t==='IO_GPIO'){return'<div class="cfg-section-head">Pin</div><div class="mini">Type <select onchange="'+sif('pinType','this.value')+'"><option value="DIGITAL_PIN"'+(io.pinType!=='ANALOG_PIN'?' selected':'')+'>Digital</option><option value="ANALOG_PIN"'+(io.pinType==='ANALOG_PIN'?' selected':'')+'>Analog</option></select></div><div class="mini">Pin# <input type="number" value="'+(io.pin??0)+'" style="width:60px" onchange="'+sif('pin','Number(this.value)')+'"/></div><div class="mini">Dir <select onchange="'+sif('isInput',"this.value==='input'")+'" ><option value="input"'+(io.isInput!==false?' selected':'')+'>Input</option><option value="output"'+(io.isInput===false?' selected':'')+'>Output</option></select></div><div class="mini">Pullup <input type="checkbox"'+(io.pullup?' checked':'')+' onchange="'+sif('pullup','this.checked')+'"/></div><div class="cfg-section-head">Options</div><div class="mini">Init Only <input type="checkbox"'+(io.initOnly?' checked':'')+' onchange="'+sif('initOnly','this.checked')+';scRenderConfig()"/></div>'+(io.initOnly?'<div class="mini">Init Val <input type="number" value="'+(io.initValue??0)+'" style="width:75px" onchange="'+sif('initValue','Number(this.value)')+'"/></div>':'')+mq(io)+leg('<tr><td>Type</td><td>Digital:0/1 | Analog:PWM 0-1 or ADC 0-4095</td></tr><tr><td>MQTT</td><td>Publish on change</td></tr>')}if(t==='IO_SHIFT'){const cv=scToVtLabel(io.valueType??2);const isOut=!io.isInput;return'<div class="cfg-section-head">Pins</div><div class="mini">Dir <select onchange="'+sif('isInput',"this.value==='input'")+'" ><option value="input"'+(io.isInput?' selected':'')+'>Input</option><option value="output"'+(!io.isInput?' selected':'')+'>Output</option></select></div><div class="mini">Data <input type="number" value="'+(io.dataPin??0)+'" style="width:60px" onchange="'+sif('dataPin','Number(this.value)')+'"/></div><div class="mini">Clock <input type="number" value="'+(io.clockPin??0)+'" style="width:60px" onchange="'+sif('clockPin','Number(this.value)')+'"/></div><div class="mini">'+(isOut?'Latch':'Load')+' <input type="number" value="'+(io.latchPin??-1)+'" style="width:60px" onchange="'+sif('latchPin','Number(this.value)')+'"/></div><div class="mini">OE <input type="number" value="'+(io.outEnablePin??-1)+'" style="width:60px" onchange="'+sif('outEnablePin','Number(this.value)')+'"/></div><div class="mini">Invert <input type="checkbox"'+(io.reverseOut?' checked':'')+' onchange="'+sif('reverseOut','this.checked')+'"/></div><div class="cfg-section-head">Data</div><div class="mini">Type <select onchange="'+sif('valueType','scToVtIndex(this.value)')+'">'+VALUE_TYPE_OPTIONS.map(o=>'<option value="'+o.v+'"'+(cv===o.v?' selected':'')+'>'+o.l+'</option>').join('')+'</select></div><div class="mini">BitMask <input type="text" value="'+scToHex(io.bitMask??0,2)+'" style="width:80px" onchange="'+sif('bitMask','scParseHexOrDec(this.value)')+'"/></div><div class="cfg-section-head">Options</div><div class="mini">Init Only <input type="checkbox"'+(io.initOnly?' checked':'')+' onchange="'+sif('initOnly','this.checked')+';scRenderConfig()"/></div>'+(io.initOnly?'<div class="mini">Init Val <input type="number" min="0" max="255" value="'+(io.initValue??0)+'" style="width:75px" onchange="'+sif('initValue','Number(this.value)')+'"/></div>':'')+mq(io)+leg('<tr><td>Dir</td><td>Input=74HC165 | Output=74HC595</td></tr><tr><td>MQTT</td><td>Publish on change</td></tr>')}return''}
+function scBuildWriteControl(sIdx,t,io){const SI='scModel.scanners['+sIdx+']';const sif=(f,e)=>'scSetIOField('+SI+",'"+t+"',"+io.ioIdx+",'"+f+"',"+e+')';if(t==='IO_GPIO'){if(io.isInput!==false)return'<span class="muted-tag">IN</span>';if(io.pinType==='ANALOG_PIN')return'<input type="number" step="0.01" min="0" max="1" value="'+(io.writeScaledValue??0)+'" style="width:65px" onchange="'+sif('writeScaledValue','Number(this.value)')+'"/><button onclick="scApplyGPIOWrite('+sIdx+','+io.ioIdx+')">Set</button>';return'<label class="sw"><input type="checkbox"'+((io.writeValue??0)?'checked':'')+' onchange="'+sif('writeValue','this.checked?1:0')+'"/><span>ON/OFF</span></label><button onclick="scApplyGPIOWrite('+sIdx+','+io.ioIdx+')">Set</button>'}if(t==='IO_SHIFT'){if(io.isInput)return'<span class="muted-tag">IN</span>';const vt=scToVtLabel(io.valueType??2);let ctrl='';if(vt==='TYPE_BIT'){const on=(io.value??0)!==0;ctrl='<button class="'+(on?'btn-on':'')+'" onclick="scApplyShiftBitToggle('+sIdx+','+io.ioIdx+','+(on?0:1)+')">'+(on?'ON':'OFF')+'</button>'}else if(vt==='TYPE_BIT_REG'){const mask=scNormShift(io.bitMask??0);const bitIsSet=(scNormShift(io.value??0)&mask)!==0;let bp=0;for(let b=0;b<8;b++){if(mask&(1<<b)){bp=b;break}}ctrl='<button class="'+(bitIsSet?'btn-on':'')+'" onclick="scApplyShiftBitToggle('+sIdx+','+io.ioIdx+','+(bitIsSet?0:1)+')">'+'B'+bp+':'+(bitIsSet?'ON':'OFF')+'</button>'}else{ctrl='<input type="number" value="'+(io.writeValue??0)+'" style="width:65px" min="0" max="255" onchange="'+sif('writeValue','Number(this.value)')+'"/><button onclick="scApplyShiftWrite('+sIdx+','+io.ioIdx+')">Set</button>'}if((io.outEnablePin??-1)>=0){const oeOn=io.outEnabled!==false;ctrl+=' <button class="'+(oeOn?'btn-on':'')+'" onclick="scApplyShiftOE('+sIdx+','+io.ioIdx+','+(oeOn?0:1)+')" title="OE">OE:'+(oeOn?'ON':'OFF')+'</button>'}return ctrl}if(t==='IO_MODBUS'){if(!scModbusWritable(io.functionCode))return'<span class="muted-tag">READ</span>';const vt=scToVtLabel(io.valueType??3);if(vt==='TYPE_BIT'||vt==='TYPE_BIT_REG'){const on=Number(io.value)!==0;const bp=vt==='TYPE_BIT_REG'?scBitFromMask(io.bitMask):0;return'<button class="'+(on?'btn-on':'')+'" onclick="scApplyModbusWrite('+sIdx+','+io.ioIdx+','+(on?0:1)+')">'+'B'+bp+':'+(on?'ON':'OFF')+'</button>'}return'<input type="number" value="'+(io.writeValue??0)+'" style="width:65px" onchange="'+sif('writeValue','Number(this.value)')+'"/><button onclick="scApplyModbusWrite('+sIdx+','+io.ioIdx+')">Set</button>'}if(t==='IO_I2C'){if(io.isInput!==false)return'<span class="muted-tag">READ</span>';const vt=scToVtLabel(io.valueType??2);if(vt==='TYPE_BIT'||vt==='TYPE_BIT_REG'){const on=Number(io.value)!==0;const bp=vt==='TYPE_BIT_REG'?scBitFromMask(io.bitMask):0;return'<button class="'+(on?'btn-on':'')+'" onclick="scApplyI2CWrite('+sIdx+','+io.ioIdx+','+(on?0:1)+')">'+'B'+bp+':'+(on?'ON':'OFF')+'</button>'}return'<input type="number" value="'+(io.writeValue??0)+'" style="width:65px" onchange="'+sif('writeValue','Number(this.value)')+'"/><button onclick="scApplyI2CWrite('+sIdx+','+io.ioIdx+')">Set</button>'}return''}
+function scBuildConfigHtml(){if(!scModel.scanners.length)return'<p class="muted">No scanners. Click + Scanner to add one.</p>';let out='';scModel.scanners.forEach((z,sIdx)=>{out+='<div class="card"><div class="scanner-head"><h3>Scanner&nbsp;<input type="text" id="z_'+z.scannerId+'_name" value="'+escHtml(z.name)+'" style="width:160px"/>&nbsp;<span class="badge badge-id">ID:'+z.scannerId+'</span></h3><button class="danger" onclick="scDeleteScanner('+sIdx+')">Delete</button></div>';for(const t of['IO_MODBUS','IO_I2C','IO_GPIO','IO_SHIFT']){const arr=z.ios[t]||[];const lim=arr.length>=8;out+='<div class="type-block"><div class="type-head"><h4>'+scTypeLabel(t)+' <span class="muted">('+arr.length+')</span></h4><button onclick="scAddIO('+sIdx+",'"+t+"')"+(lim?' disabled':'')+'>+ Add '+scTypeLabel(t)+'</button></div><div style="overflow-x:auto"><table class="io-table"><colgroup><col style="width:32px"><col><col style="width:42px"><col style="width:115px"><col><col style="width:128px"><col style="width:42px"><col style="width:42px"></colgroup><thead><tr><th>#</th><th>Name</th><th>Act</th><th>Scale</th><th>Value</th><th>Write</th><th>Config</th><th>Del</th></tr></thead><tbody>';arr.forEach(io=>{const key=sIdx+':'+t+':'+io.ioIdx;const showX=Boolean(scDetOpen[key]);const extra=scBuildExtraConfig(sIdx,t,io);const wctrl=scBuildWriteControl(sIdx,t,io);const SI='scModel.scanners['+sIdx+']';const sif=(f,e)=>'scSetIOField('+SI+",'"+t+"',"+io.ioIdx+",'"+f+"',"+e+')';let vd=String(io.value??'');if(t==='IO_GPIO')vd=io.pinType==='DIGITAL_PIN'?scAsBitOnOff(io.value):String(io.value??'');else if(t==='IO_SHIFT'){const vt=scToVtLabel(io.valueType??2);if(vt==='TYPE_BIT')vd=scAsBitOnOff(io.value);else if(vt==='TYPE_BIT_REG'){const mask=scNormShift(io.bitMask??0);vd='B'+scBitFromMask(mask)+':'+((scNormShift(io.value??0)&mask)!==0?'ON':'OFF')}else vd=String(io.value??'')}else if(t==='IO_MODBUS'){const vt=scToVtLabel(io.valueType??3);if(vt==='TYPE_BIT')vd='B0:'+(Number(io.value)?'ON':'OFF');else if(vt==='TYPE_BIT_REG')vd='B'+scBitFromMask(io.bitMask)+':'+(Number(io.value)?'ON':'OFF')}else if(t==='IO_I2C'){const vt=scToVtLabel(io.valueType??2);if(vt==='TYPE_BIT')vd='B0:'+(Number(io.value)?'ON':'OFF');else if(vt==='TYPE_BIT_REG')vd='B'+scBitFromMask(io.bitMask)+':'+(Number(io.value)?'ON':'OFF')}out+='<tr><td>'+io.ioIdx+'</td><td><input type="text" value="'+escHtml(io.name)+'" class="io-name-input" onchange="'+sif('name','this.value')+'"/></td><td style="text-align:center"><input type="checkbox"'+(io.active?' checked':'')+' onchange="'+sif('active','this.checked')+'"/></td><td><input type="number" step="0.01" value="'+(io.scale??1.0)+'" style="width:100%;box-sizing:border-box" onchange="'+sif('scale','Number(this.value)')+'"/></td><td id="val_'+sIdx+'_'+t+'_'+io.ioIdx+'" class="'+(io.changed?'val-changed':'')+'">'+escHtml(vd)+'</td><td>'+wctrl+'</td><td><button class="cfg-btn" onclick="scToggleExtraDetails('+sIdx+",'"+t+"',"+io.ioIdx+')">'+(showX?'&#9650;':'&#9660;')+'</button></td><td><button class="danger" onclick="scDeleteIO('+sIdx+",'"+t+"',"+io.ioIdx+')">&#x2715;</button></td></tr>';if(showX)out+='<tr class="detail-row"><td colspan="8"><div class="extra-card"><div class="extra-grid">'+extra+'</div></div></td></tr>'});out+='</tbody></table></div></div>'}out+='</div>'});return out}
+function scShowHardware(){openFsModal('Hardware Config','<div class="hw-form-grid"><div class="hw-section-title">Modbus RS-485</div><label>Enabled</label><input type="checkbox" id="mb-enabled"><label>RX Pin</label><input type="number" id="mb-rx" inputmode="numeric"><label>TX Pin</label><input type="number" id="mb-tx" inputmode="numeric"><label>DE/RE Pin</label><input type="number" id="mb-dere" inputmode="numeric"><label>Baud Rate</label><input type="number" id="mb-baud" inputmode="numeric"><label>RTU Role</label><select id="mb-rtu-role"><option value="master">Master</option><option value="slave">Slave</option></select><div class="hw-section-title">I2C</div><label>Enabled</label><input type="checkbox" id="i2c-enabled"><label>SDA Pin</label><input type="number" id="i2c-sda" inputmode="numeric"><label>SCL Pin</label><input type="number" id="i2c-scl" inputmode="numeric"><label>Frequency</label><input type="number" id="i2c-freq" inputmode="numeric"></div><pre class="log-box" id="hw-log"></pre><div class="modal-actions"><button onclick="scSaveHw()">Save &amp; Apply</button><button onclick="scLoadHw()">Reload</button><button class="danger" onclick="closeFsModal()">Close</button></div>');scLoadHw()}
+function hwLog(msg){const el=document.getElementById('hw-log');if(el)el.textContent='['+new Date().toLocaleTimeString()+'] '+msg+'\n'+el.textContent}
+async function scLoadHw(){const d=await scFetch('/api/hw');if(!d){hwLog('Load failed');return}const id=s=>document.getElementById(s),m=d.modbus??{},i=d.i2c??{};if(id('mb-enabled'))id('mb-enabled').checked=!!m.enabled;if(id('mb-rx'))id('mb-rx').value=m.rxPin??16;if(id('mb-tx'))id('mb-tx').value=m.txPin??17;if(id('mb-dere'))id('mb-dere').value=m.deRePin??4;if(id('mb-baud'))id('mb-baud').value=m.baudRate??9600;if(id('mb-rtu-role'))id('mb-rtu-role').value=m.rtuRole??'master';if(id('i2c-enabled'))id('i2c-enabled').checked=!!i.enabled;if(id('i2c-sda'))id('i2c-sda').value=i.sdaPin??21;if(id('i2c-scl'))id('i2c-scl').value=i.sclPin??22;if(id('i2c-freq'))id('i2c-freq').value=i.freq??100000;hwLog('Loaded')}
+async function scSaveHw(){const id=s=>document.getElementById(s);const body={modbus:{enabled:id('mb-enabled')?.checked??false,rxPin:+id('mb-rx')?.value,txPin:+id('mb-tx')?.value,deRePin:+id('mb-dere')?.value,baudRate:+id('mb-baud')?.value,rtuRole:id('mb-rtu-role')?.value??'master'},i2c:{enabled:id('i2c-enabled')?.checked??false,sdaPin:+id('i2c-sda')?.value,sclPin:+id('i2c-scl')?.value,freq:+id('i2c-freq')?.value}};const r=await scFetch('/api/hw','POST',body);hwLog(r?.ok?'Saved OK':'Save failed')}
+function scShowMQTT(){openFsModal('MQTT Config','<div class="hw-form-grid"><div class="hw-section-title">Broker</div><label>Enabled</label><input type="checkbox" id="mqtt-enabled"><label>Broker Host</label><input type="text" id="mqtt-broker" placeholder="broker.host"><label>Port</label><input type="number" id="mqtt-port" value="1883" inputmode="numeric"><label>Username</label><input type="text" id="mqtt-user" autocomplete="off"><label>Password</label><input type="password" id="mqtt-pass" autocomplete="off"><div class="hw-section-title">Publishing</div><label>Heartbeat (s)</label><input type="number" id="mqtt-hb" value="30" min="5" max="3600" inputmode="numeric"></div><pre class="log-box" id="mqtt-log"></pre><div class="modal-actions"><button onclick="scSaveMQTT()">Save &amp; Apply</button><button onclick="scLoadMQTT()">Reload</button><button class="danger" onclick="closeFsModal()">Close</button></div>');scLoadMQTT()}
+function mqttLog(msg){const el=document.getElementById('mqtt-log');if(el)el.textContent='['+new Date().toLocaleTimeString()+'] '+msg+'\n'+el.textContent}
+async function scLoadMQTT(){const d=await scFetch('/api/mqtt');if(!d){mqttLog('Load failed');return}const id=s=>document.getElementById(s);if(id('mqtt-enabled'))id('mqtt-enabled').checked=!!d.enabled;if(id('mqtt-broker'))id('mqtt-broker').value=d.broker??'';if(id('mqtt-port'))id('mqtt-port').value=d.port??1883;if(id('mqtt-user'))id('mqtt-user').value=d.user??'';if(id('mqtt-hb'))id('mqtt-hb').value=d.heartbeat??30;mqttLog('Loaded')}
+async function scSaveMQTT(){const id=s=>document.getElementById(s);const body={enabled:id('mqtt-enabled')?.checked??false,broker:id('mqtt-broker')?.value??'',port:+(id('mqtt-port')?.value??1883),user:id('mqtt-user')?.value??'',pass:id('mqtt-pass')?.value??'',heartbeat:+(id('mqtt-hb')?.value??30)};const r=await scFetch('/api/mqtt','POST',body);mqttLog(r?.ok?'Saved OK':'Save failed');if(r?.ok&&id('mqtt-pass'))id('mqtt-pass').value=''}
+</script>
+<script>
+const STATUS_NAMES=['STOPPED','PENDING','RUNNING','PAUSED','FINISHED','ALARM','CANCELLED'];
+const STATUS_CSS=['stopped','pending','running','paused','finished','alarm','cancelled'];
+const IE_SENSOR_TYPES=['DIGITAL','PRESSURE','LEVEL','HUMIDITY','TEMPERATURE','PH','CONDUCTIVITY','NITROGEN','PHOSPHORUS','POTASSIUM','SALINITY'];
+let ieState={zones:[],systems:[]};let ieEs=null;let ieInited=false;
+function ieSecToHms(s){s=Math.max(0,s|0);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0')}
+function ieFmtSensor(type,value){return type===0?(value>=0.5?'true':'false'):Number(value).toFixed(1)}
+function ieApi(path){const base=getDeviceUrl();return base?base+path:null}
+async function ieFetch(path,method='GET',body=null){const url=ieApi(path);if(!url)return null;try{const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:body!=null?JSON.stringify(body):undefined});const txt=await r.text();try{return JSON.parse(txt)}catch{return{raw:txt}}}catch{return null}}
+function ieBadgeClass(status){return'badge badge-'+(STATUS_CSS[status]??'stopped')}
+function ieStatusName(status){return STATUS_NAMES[status]??'UNKNOWN'}
+function ieSetLive(on){const el=document.getElementById('ie-live-dot');if(el){el.className='dot '+(on?'dot-green':'dot-grey');el.title=on?'Live':'Offline'}}
+function ieSetMqttDot(on){const el=document.getElementById('ie-mqtt-dot');if(el){el.className='dot '+(on?'dot-green':'dot-grey');el.title='MQTT '+(on?'connected':'disconnected')}}
+function ieUpdateClock(ts){const el=document.getElementById('ie-clock');if(el&&ts)el.textContent=new Date(ts*1000).toLocaleTimeString()}
+function ieZoneStatusText(z){let st=ieStatusName(z.status);let css=STATUS_CSS[z.status]??'stopped';if((z.status===0||z.status===4||z.status===6)&&z.retryCount>0){st='Retry #'+z.retryCount;css='paused'}if((z.status===0||z.status===4||z.status===6)&&!z.retryCount&&z.intervalWaitSec>0){st='Waiting';css='stopped'}if(typeof z.schedIdx==='number'&&z.schedIdx>=0)st+=' #'+(z.schedIdx+1);return{st,css}}
+function ieZoneRemaining(z){if((z.status===2||z.status===3)&&z.remaining>0)return ieSecToHms(z.remaining)+' remaining';if((z.status===0||z.status===4||z.status===6)&&z.retryCount>0)return z.retryRemainSec>0?(ieSecToHms(z.retryRemainSec)+' until retry'):'Retrying soon…';if((z.status===0||z.status===4||z.status===6)&&!z.retryCount&&z.intervalWaitSec>0)return ieSecToHms(z.intervalWaitSec)+' until next run';return''}
+function ieZoneButtonsHtml(z,zi){if(z.override!==0)return'<button class="btn-run" onclick="ieOverride('+zi+',1)">&#9654; Open</button><button class="btn-stop" onclick="ieOverride('+zi+',2)">&#9646; Close</button><button class="btn-auto" onclick="ieOverride('+zi+',0)">AUTO</button>';const cancelable=z.status===2||z.status===3||z.status===5||(z.status===0&&z.retryCount>0);const condsOk=z.hasHumidity||!(z.conditions&&z.conditions.some(c=>!c.pass));const runnable=condsOk&&((z.status===0&&!z.retryCount)||z.status===4||z.status===6);return(cancelable?'<button class="btn-stop" onclick="ieCancelZone('+zi+')">'+(z.status===5?'&#8634; Reset':'&#10005; Cancel')+'</button>':'')+(runnable?'<button class="btn-run" onclick="ieRunZone('+zi+')">&#9654; Run</button>':'')+'<button class="btn-pause" onclick="ieOverride('+zi+',2)">Manual</button>'}
+function ieZoneCardHtml(z,zi){const{st,css}=ieZoneStatusText(z);const rem=ieZoneRemaining(z);const outputs=(z.outputs||[]).filter(o=>o.show).map(o=>'<div class="ie-card-detail">'+escHtml(o.name||'OUT')+': '+(o.state?'ON':'OFF')+'</div>').join('');const sensors=(z.sensors||[]).map(s=>'<div class="ie-card-detail">'+escHtml(s.name||IE_SENSOR_TYPES[s.type]||'')+': '+ieFmtSensor(s.type,s.value)+'</div>').join('');const conds=(z.conditions||[]).map(c=>{const range=(c.mode===0&&c.type!==0)?' ['+c.low+'-'+c.high+']':'';const val=c.value!==undefined?ieFmtSensor(c.type,c.value):'';return'<div class="ie-card-detail">'+escHtml(c.name||IE_SENSOR_TYPES[c.type]||'')+': '+val+range+' '+(c.pass?'✅':'❌')+'</div>'}).join('');return'<div class="ie-card"><div class="ie-card-head"><div><div class="ie-card-name">'+escHtml(z.name)+'</div><span class="badge badge-'+css+'">'+st+'</span></div><button class="icon-btn" onclick="ieOpenZoneConfig('+zi+')" title="Configure">&#9881;</button></div>'+outputs+sensors+conds+(rem?'<div class="ie-card-remaining">'+rem+'</div>':'')+'<div class="ie-card-actions" onclick="event.stopPropagation()">'+ieZoneButtonsHtml(z,zi)+'<button class="btn-hist" onclick="ieZoneHistory('+zi+')">History</button></div></div>'}
+function ieSysStatusText(s){const ovr=s.override||0;if(ovr===1)return{st:'Forced ON',css:'running'};if(ovr===2)return{st:'Forced OFF',css:'stopped'};if(s.schedCount>0){let st=STATUS_NAMES[s.schedStatus]||'STOPPED';let css=STATUS_CSS[s.schedStatus]||'stopped';if(s.schedIdx>=0)st+=' #'+(s.schedIdx+1);if((s.schedStatus===4||s.schedStatus===0||s.schedStatus===6)&&s.schedIntervalWait>0){st='Waiting';css='stopped'}return{st,css}}return{st:s.ok?'OK':'FAIL',css:s.ok?'running':'alarm'}}
+function ieSysRemaining(s){if(s.schedStatus===2&&s.schedRemaining>0)return ieSecToHms(s.schedRemaining)+' remaining';if(s.schedStatus===3&&s.schedRemaining>0)return ieSecToHms(s.schedRemaining)+' remaining (paused)';if((s.schedStatus===4||s.schedStatus===0||s.schedStatus===6)&&s.schedIntervalWait>0)return ieSecToHms(s.schedIntervalWait)+' until next run';return''}
+function ieSysButtonsHtml(s,si){const ovr=s.override||0;if(ovr!==0)return'<button class="btn-run" onclick="ieSysOverride('+si+',1)">&#9654; Force ON</button><button class="btn-stop" onclick="ieSysOverride('+si+',2)">&#9646; Force OFF</button><button class="btn-auto" onclick="ieSysOverride('+si+',0)">AUTO</button>';const cancelable=s.schedStatus===2||s.schedStatus===3;const runnable=s.schedCount>0&&!cancelable;return(cancelable?'<button class="btn-stop" onclick="ieCancelSys('+si+')">&#10005; Cancel</button>':'')+(runnable?'<button class="btn-run" onclick="ieRunSys('+si+')">&#9654; Run</button>':'')+'<button class="btn-run" onclick="ieSysOverride('+si+',1)">&#9654; Force ON</button><button class="btn-stop" onclick="ieSysOverride('+si+',2)">&#9646; Force OFF</button>'}
+function ieSysCardHtml(s,si){const{st,css}=ieSysStatusText(s);const rem=ieSysRemaining(s);const outputs=(s.outputs||[]).filter(o=>o.show).map(o=>'<div class="ie-card-detail">'+escHtml(o.name||'OUT')+': '+(o.state?'ON':'OFF')+'</div>').join('');const conds=(s.conditions||[]).map(c=>{const range=(c.mode===0&&c.type!==0)?' ['+c.low+'-'+c.high+']':'';const val=c.value!==undefined?ieFmtSensor(c.type,c.value):'';return'<div class="ie-card-detail">'+escHtml(c.name||IE_SENSOR_TYPES[c.type]||'')+': '+val+range+' '+(c.pass?'✅':'❌')+'</div>'}).join('');const sensors=(s.sensors||[]).map(sv=>'<div class="ie-card-detail">'+escHtml(sv.name||IE_SENSOR_TYPES[sv.type]||'')+': '+ieFmtSensor(sv.type,sv.value)+'</div>').join('');return'<div class="ie-card"><div class="ie-card-head"><div><div class="ie-card-name">'+escHtml(s.name)+'</div><span class="badge badge-'+css+'">'+st+'</span></div><button class="icon-btn" onclick="ieOpenSysConfig('+si+')" title="Configure">&#9881;</button></div>'+outputs+conds+sensors+(rem?'<div class="ie-card-remaining">'+rem+'</div>':'')+'<div class="ie-card-actions" onclick="event.stopPropagation()">'+ieSysButtonsHtml(s,si)+'<button class="btn-hist" onclick="ieSysHistory('+si+')">History</button></div></div>'}
+function ieRenderZones(){const grid=document.getElementById('ie-zones-grid');if(!grid)return;grid.innerHTML=ieState.zones.map((z,i)=>ieZoneCardHtml(z,i)).join('')||'<p class="muted">No zones configured.</p>'}
+function ieRenderSystems(){const grid=document.getElementById('ie-systems-grid');if(!grid)return;grid.innerHTML=ieState.systems.map((s,i)=>ieSysCardHtml(s,i)).join('')||'<p class="muted">No systems configured.</p>'}
+async function ieZoneManual(zi,run){await ieFetch('/api/zones/'+zi+'/manual','POST',{run:!!run})}
+async function ieSysManual(si,run){await ieFetch('/api/systems/'+si+'/manual','POST',{run:!!run})}
+async function ieCancelZone(zi){await ieFetch('/api/zones/'+zi+'/cancel','POST',{})}
+async function ieOverride(zi,mode){await ieFetch('/api/override/'+zi,'POST',{mode})}
+async function ieSysOverride(si,mode){await ieFetch('/api/sysoverride/'+si,'POST',{mode})}
+async function ieCancelSys(si){await ieFetch('/api/systems/'+si+'/cancel','POST',{})}
+async function ieRunSys(si){const s=await ieFetch('/api/systems/'+si);if(!s)return;const en=(s.schedules||[]).filter(sc=>sc.enabled);if(!en.length)return;if(en.length===1){const sci=s.schedules.indexOf(en[0]);await ieFetch('/api/systems/'+si+'/schedules/'+sci+'/run','POST',{});return}const ex=document.getElementById('_ie_spick');if(ex)ex.remove();const p=document.createElement('div');p.id='_ie_spick';p.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;z-index:600;min-width:200px;box-shadow:0 4px 20px rgba(0,0,0,.4)';p.innerHTML='<p style="font-weight:700;margin-bottom:10px;color:var(--text)">Run which schedule?</p>';s.schedules.forEach((sc,sci)=>{if(!sc.enabled)return;const b=document.createElement('button');b.textContent=sc.name||'Schedule '+(sci+1);b.style.cssText='display:block;width:100%;margin:4px 0';b.onclick=async()=>{p.remove();await ieFetch('/api/systems/'+si+'/schedules/'+sci+'/run','POST',{})};p.appendChild(b)});const cb=document.createElement('button');cb.textContent='Cancel';cb.style.cssText='display:block;width:100%;margin-top:8px';cb.onclick=()=>p.remove();p.appendChild(cb);document.body.appendChild(p)}
+async function ieRunZone(zi){const z=await ieFetch('/api/zones/'+zi);if(!z)return;const en=(z.schedules||[]).filter(s=>s.enabled);if(!en.length)return;if(en.length===1){const si=z.schedules.indexOf(en[0]);await ieFetch('/api/zones/'+zi+'/schedules/'+si+'/run','POST',{});return}const ex=document.getElementById('_ie_pick');if(ex)ex.remove();const p=document.createElement('div');p.id='_ie_pick';p.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;z-index:600;min-width:200px;box-shadow:0 4px 20px rgba(0,0,0,.4)';p.innerHTML='<p style="font-weight:700;margin-bottom:10px;color:var(--text)">Run which schedule?</p>';z.schedules.forEach((s,si)=>{if(!s.enabled)return;const b=document.createElement('button');b.textContent=s.name||'Schedule '+(si+1);b.style.cssText='display:block;width:100%;margin:4px 0';b.onclick=async()=>{p.remove();await ieFetch('/api/zones/'+zi+'/schedules/'+si+'/run','POST',{})};p.appendChild(b)});const cb=document.createElement('button');cb.textContent='Cancel';cb.style.cssText='display:block;width:100%;margin-top:8px';cb.onclick=()=>p.remove();p.appendChild(cb);document.body.appendChild(p)}
+function ieConnectSSE(){const url=ieApi('/events');if(!url){ieSetLive(false);return}if(ieEs){ieEs.close();ieEs=null}try{ieEs=new EventSource(url);ieEs.addEventListener('status',ev=>{try{const data=JSON.parse(ev.data);ieState.zones=data.zones??[];ieState.systems=data.systems??[];ieRenderZones();ieRenderSystems();ieUpdateClock(data.ts);ieSetLive(true);if(data.mqtt)ieSetMqttDot(data.mqtt.connected)}catch{}});ieEs.onerror=()=>ieSetLive(false)}catch{ieSetLive(false)}}
+function ieInit(){if(!getDeviceUrl()){document.getElementById('ie-zones-grid').innerHTML='<p class="muted">Configure device IP in Settings first.</p>';document.getElementById('ie-systems-grid').innerHTML='';return}if(!ieInited){ieInited=true;ieConnectSSE()}}
+function ieOpenZoneConfig(zi){openFsPanel('Zone Config','<p class="muted" style="padding:14px">Loading...</p>');ieLoadZoneConfig(zi)}
+function ieOpenSysConfig(si){openFsPanel('System Config','<p class="muted" style="padding:14px">Loading...</p>');ieLoadSysConfig(si)}
+function ieZoneHistory(zi){openFsPanel('Zone History','<p class="muted" style="padding:14px">Loading...</p>');ieFetch('/api/zones/'+zi+'/history').then(r=>{const b=document.getElementById('fs-panel-body');if(b)b.innerHTML=ieRenderHistory(r)})}
+function ieSysHistory(si){openFsPanel('System History','<p class="muted" style="padding:14px">Loading...</p>');ieFetch('/api/systems/'+si+'/history').then(r=>{const b=document.getElementById('fs-panel-body');if(b)b.innerHTML=ieRenderHistory(r)})}
+function ieShowWifi(){openFsModal('Device Settings','<p class="muted" style="padding:14px">Loading...</p>');ieLoadWifiModal()}
+async function ieLoadZoneConfig(zi){const z=await ieFetch('/api/zones/'+zi);if(!z){const b=document.getElementById('fs-panel-body');if(b)b.innerHTML='<p class="muted" style="padding:14px">Load failed.</p>';return}const body='<div class="ie-tab-bar"><button class="ie-tab-btn active" onclick="ieZoneTab('+zi+',this,\'general\')">General</button><button class="ie-tab-btn" onclick="ieZoneTab('+zi+',this,\'schedule\')">Schedule</button><button class="ie-tab-btn" onclick="ieZoneTab('+zi+',this,\'outputs\')">Outputs</button><button class="ie-tab-btn" onclick="ieZoneTab('+zi+',this,\'sensors\')">Sensors</button><button class="ie-tab-btn" onclick="ieZoneTab('+zi+',this,\'conditions\')">Conditions</button></div><div id="ie-zone-tab-body" style="padding:14px"></div>';const panel=document.getElementById('fs-panel-body');if(panel){panel.innerHTML=body;ieShowZoneGeneral(zi,z)}}
+function ieZoneTab(zi,btn,tab){document.querySelectorAll('.ie-tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');if(tab==='general')ieFetch('/api/zones/'+zi).then(z=>z&&ieShowZoneGeneral(zi,z));else{const b=document.getElementById('ie-zone-tab-body');if(b)b.innerHTML='<p class="muted">'+tab.charAt(0).toUpperCase()+tab.slice(1)+' — configure via the device web UI at <a href="#" onclick="openOriginalUI(\'irrigengine\')" style="color:var(--accent)">'+ieApi('/')+' &#8599;</a></p>'}}
+function ieShowZoneGeneral(zi,z){const b=document.getElementById('ie-zone-tab-body');if(!b)return;b.innerHTML='<div class="form-row"><label>Zone Name</label><input type="text" id="z-name" value="'+escHtml(z.name??'')+'"></div><div class="form-row"><label>Control Mode</label><select id="z-mode"><option value="0" '+(z.mode===0?'selected':'')+'>TIME</option><option value="1" '+(z.mode===1?'selected':'')+'>HUMIDITY</option><option value="2" '+(z.mode===2?'selected':'')+'>INTERVAL</option></select></div><div class="modal-actions"><button onclick="ieSaveZoneGeneral('+zi+')">Save</button></div>'}
+async function ieSaveZoneGeneral(zi){const r=await ieFetch('/api/zones/'+zi,'POST',{name:document.getElementById('z-name')?.value??'',mode:+(document.getElementById('z-mode')?.value??0)});if(r?.ok!==false){const b=document.getElementById('ie-zone-tab-body');if(b){const msg=document.createElement('p');msg.className='muted';msg.textContent='Saved.';b.appendChild(msg);setTimeout(()=>msg.remove(),2000)}}}
+async function ieLoadSysConfig(si){const s=await ieFetch('/api/systems/'+si);if(!s){const b=document.getElementById('fs-panel-body');if(b)b.innerHTML='<p class="muted" style="padding:14px">Load failed.</p>';return}const body='<div class="ie-tab-bar"><button class="ie-tab-btn active" onclick="ieSysTab('+si+',this,\'general\')">General</button><button class="ie-tab-btn" onclick="ieSysTab('+si+',this,\'schedule\')">Schedule</button></div><div id="ie-sys-tab-body" style="padding:14px"></div>';const panel=document.getElementById('fs-panel-body');if(panel){panel.innerHTML=body;ieShowSysGeneral(si,s)}}
+function ieSysTab(si,btn,tab){document.querySelectorAll('.ie-tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');if(tab==='general')ieFetch('/api/systems/'+si).then(s=>s&&ieShowSysGeneral(si,s));else{const b=document.getElementById('ie-sys-tab-body');if(b)b.innerHTML='<p class="muted">'+tab.charAt(0).toUpperCase()+tab.slice(1)+' — configure via the device web UI at <a href="#" onclick="openOriginalUI(\'irrigengine\')" style="color:var(--accent)">'+ieApi('/')+' &#8599;</a></p>'}}
+function ieShowSysGeneral(si,s){const b=document.getElementById('ie-sys-tab-body');if(!b)return;b.innerHTML='<div class="form-row"><label>System Name</label><input type="text" id="sys-name" value="'+escHtml(s.name??'')+'"></div><div class="modal-actions"><button onclick="ieSaveSysGeneral('+si+')">Save</button></div>'}
+async function ieSaveSysGeneral(si){await ieFetch('/api/systems/'+si,'POST',{name:document.getElementById('sys-name')?.value??''})}
+async function ieLoadWifiModal(){openFsModal('Device Settings','<div class="form-row"><label>WiFi Status</label><p class="muted" id="ie-wifi-status">Loading...</p></div><div class="form-row"><label>New SSID</label><input type="text" id="ie-new-ssid"></div><div class="form-row"><label>New Password</label><input type="password" id="ie-new-pass"></div><div class="modal-actions"><button onclick="ieSaveWifi()">Save &amp; Restart</button><button class="danger" onclick="ieClearWifi()">Forget WiFi</button></div><hr style="margin:14px 0;border:none;border-top:1px solid var(--border)"><div class="form-row"><label>Zone Count (1-16)</label><input type="number" id="ie-cfg-zones" min="1" max="16" inputmode="numeric"></div><div class="form-row"><label>System Count (1-8)</label><input type="number" id="ie-cfg-systems" min="1" max="8" inputmode="numeric"></div><div class="form-row"><label>Max Concurrent Zones</label><input type="number" id="ie-cfg-maxopen" min="1" max="16" inputmode="numeric"></div><div class="modal-actions"><button onclick="ieSaveCfg()">Save Config</button><button class="danger" onclick="closeFsModal()">Close</button></div>');const[wifi,cfg]=await Promise.all([ieFetch('/api/wifi'),ieFetch('/api/config')]);const el=id=>document.getElementById(id);if(el('ie-wifi-status'))el('ie-wifi-status').textContent=wifi?(wifi.ssid??'Not connected'):'Load failed';if(cfg){if(el('ie-cfg-zones'))el('ie-cfg-zones').value=cfg.zones??8;if(el('ie-cfg-systems'))el('ie-cfg-systems').value=cfg.systems??4;if(el('ie-cfg-maxopen'))el('ie-cfg-maxopen').value=cfg.maxOpen??2}}
+async function ieSaveWifi(){const ssid=document.getElementById('ie-new-ssid')?.value.trim()??'';const pass=document.getElementById('ie-new-pass')?.value??'';if(!ssid)return;await ieFetch('/api/wifi','POST',{ssid,pass})}
+async function ieClearWifi(){if(!confirm('Forget WiFi and restart in AP mode?'))return;await ieFetch('/api/wifi','DELETE')}
+async function ieSaveCfg(){const el=id=>document.getElementById(id);await ieFetch('/api/config','POST',{zones:+(el('ie-cfg-zones')?.value??8),systems:+(el('ie-cfg-systems')?.value??4),maxOpen:+(el('ie-cfg-maxopen')?.value??2)})}
+function fmtTs(ts){if(!ts)return'—';const d=new Date(ts*1000);return d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+function fmtDur(secs){if(!secs&&secs!==0)return'—';if(secs<60)return secs+'s';return Math.floor(secs/60)+'m '+(secs%60)+'s'}
+function ieRenderHistory(records){if(!Array.isArray(records)||!records.length)return'<p class="muted" style="margin-top:10px">No history recorded yet.</p>';return'<div class="history-list">'+records.map(r=>'<div class="history-item"><div><div class="history-dt">'+fmtTs(r.startTs)+'</div><div class="history-reason">'+escHtml(r.schedName??'—')+'</div></div><div class="history-dur">'+fmtDur(r.duration)+'</div></div>').join('')+'</div>'}
+</script>
 </body>
 </html>

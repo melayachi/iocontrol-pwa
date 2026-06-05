@@ -1,11 +1,23 @@
 // ===== IRRIGENGINE — irrigengine.js =====
 
-const STATUS_NAMES = ['STOPPED','PENDING','RUNNING','PAUSED','FINISHED','ALARM','CANCELLED'];
-const STATUS_CSS   = ['stopped','pending','running','paused','finished','alarm','cancelled'];
+const STATUS_NAMES  = ['STOPPED','PENDING','RUNNING','PAUSED','FINISHED','ALARM','CANCELLED'];
+const STATUS_CSS    = ['stopped','pending','running','paused','finished','alarm','cancelled'];
+const IE_SENSOR_TYPES = ['DIGITAL','PRESSURE','LEVEL','HUMIDITY','TEMPERATURE','PH',
+                         'CONDUCTIVITY','NITROGEN','PHOSPHORUS','POTASSIUM','SALINITY'];
 
 let ieState = { zones: [], systems: [] };
 let ieEs = null;
 let ieInited = false;
+
+function ieSecToHms(s) {
+  s = Math.max(0, s | 0);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+}
+
+function ieFmtSensor(type, value) {
+  return type === 0 ? (value >= 0.5 ? 'true' : 'false') : Number(value).toFixed(1);
+}
 
 function ieApi(path) {
   const base = getDeviceUrl();
@@ -44,18 +56,69 @@ function ieUpdateClock(ts) {
   if (el && ts) el.textContent = new Date(ts * 1000).toLocaleTimeString();
 }
 
+function ieZoneStatusText(z) {
+  let st = ieStatusName(z.status);
+  let css = STATUS_CSS[z.status] ?? 'stopped';
+  if ((z.status === 0 || z.status === 4 || z.status === 6) && z.retryCount > 0) { st = 'Retry #' + z.retryCount; css = 'paused'; }
+  if ((z.status === 0 || z.status === 4 || z.status === 6) && !z.retryCount && z.intervalWaitSec > 0) { st = 'Waiting'; css = 'stopped'; }
+  if (typeof z.schedIdx === 'number' && z.schedIdx >= 0) st += ' #' + (z.schedIdx + 1);
+  return { st, css };
+}
+
+function ieZoneRemaining(z) {
+  if ((z.status === 2 || z.status === 3) && z.remaining > 0) return ieSecToHms(z.remaining) + ' remaining';
+  if ((z.status === 0 || z.status === 4 || z.status === 6) && z.retryCount > 0)
+    return z.retryRemainSec > 0 ? (ieSecToHms(z.retryRemainSec) + ' until retry') : 'Retrying soon…';
+  if ((z.status === 0 || z.status === 4 || z.status === 6) && !z.retryCount && z.intervalWaitSec > 0)
+    return ieSecToHms(z.intervalWaitSec) + ' until next run';
+  return '';
+}
+
+function ieZoneButtonsHtml(z, zi) {
+  if (z.override !== 0) {
+    return `<button class="btn-run"  onclick="ieOverride(${zi},1)">&#9654; Open</button>
+            <button class="btn-stop" onclick="ieOverride(${zi},2)">&#9646; Close</button>
+            <button class="btn-auto" onclick="ieOverride(${zi},0)">AUTO</button>`;
+  }
+  const cancelable = z.status === 2 || z.status === 3 || z.status === 5 || (z.status === 0 && z.retryCount > 0);
+  const condsOk    = z.hasHumidity || !(z.conditions && z.conditions.some(c => !c.pass));
+  const runnable   = condsOk && ((z.status === 0 && !z.retryCount) || z.status === 4 || z.status === 6);
+  return `${cancelable ? `<button class="btn-stop" onclick="ieCancelZone(${zi})">${z.status === 5 ? '&#8634; Reset' : '&#10005; Cancel'}</button>` : ''}
+          ${runnable   ? `<button class="btn-run"  onclick="ieRunZone(${zi})">&#9654; Run</button>` : ''}
+          <button class="btn-pause" onclick="ieOverride(${zi},2)">Manual</button>`;
+}
+
 function ieZoneCardHtml(z, zi) {
-  const statusName = ieStatusName(z.status);
-  const badgeCls   = ieBadgeClass(z.status);
+  const { st, css } = ieZoneStatusText(z);
+  const rem = ieZoneRemaining(z);
+
+  const outputs = (z.outputs || []).filter(o => o.show)
+    .map(o => `<div class="ie-card-detail">${escHtml(o.name||'OUT')}: ${o.state ? 'ON' : 'OFF'}</div>`).join('');
+
+  const sensors = (z.sensors || [])
+    .map(s => `<div class="ie-card-detail">${escHtml(s.name || IE_SENSOR_TYPES[s.type]||'')}: ${ieFmtSensor(s.type, s.value)}</div>`).join('');
+
+  const conditions = (z.conditions || [])
+    .map(c => {
+      const range = (c.mode === 0 && c.type !== 0) ? ` [${c.low}-${c.high}]` : '';
+      const val   = c.value !== undefined ? ieFmtSensor(c.type, c.value) : '';
+      return `<div class="ie-card-detail">${escHtml(c.name || IE_SENSOR_TYPES[c.type]||'')}: ${val}${range} ${c.pass ? '✅' : '❌'}</div>`;
+    }).join('');
+
   return `
-    <div class="ie-card" onclick="ieOpenZoneConfig(${zi})">
-      <div><span class="ie-card-name">${escHtml(z.name)}</span></div>
-      <div><span class="${badgeCls}">${statusName}</span></div>
-      ${z.currentSchedule ? `<div class="ie-card-sub">${escHtml(z.currentSchedule)}</div>` : ''}
+    <div class="ie-card">
+      <div class="ie-card-head">
+        <div>
+          <div class="ie-card-name">${escHtml(z.name)}</div>
+          <span class="badge badge-${css}">${st}</span>
+        </div>
+        <button class="icon-btn" onclick="ieOpenZoneConfig(${zi})" title="Configure">&#9881;</button>
+      </div>
+      ${outputs}${sensors}${conditions}
+      ${rem ? `<div class="ie-card-remaining">${rem}</div>` : ''}
       <div class="ie-card-actions" onclick="event.stopPropagation()">
-        <button onclick="ieZoneManual(${zi},1)">&#9654; Run</button>
-        <button onclick="ieZoneManual(${zi},0)">&#9646;&#9646; Stop</button>
-        <button onclick="ieZoneHistory(${zi})">History</button>
+        ${ieZoneButtonsHtml(z, zi)}
+        <button class="btn-hist" onclick="ieZoneHistory(${zi})">History</button>
       </div>
     </div>`;
 }
@@ -92,6 +155,40 @@ function ieRenderSystems() {
 
 async function ieZoneManual(zi, run) { await ieFetch('/api/zones/' + zi + '/manual', 'POST', { run: !!run }); }
 async function ieSysManual(si, run)  { await ieFetch('/api/systems/' + si + '/manual', 'POST', { run: !!run }); }
+async function ieCancelZone(zi)      { await ieFetch('/api/zones/' + zi + '/cancel', 'POST', {}); }
+async function ieOverride(zi, mode)  { await ieFetch('/api/override/' + zi, 'POST', { mode }); }
+
+async function ieRunZone(zi) {
+  const z = await ieFetch('/api/zones/' + zi);
+  if (!z) return;
+  const enabled = (z.schedules || []).filter(s => s.enabled);
+  if (!enabled.length) return;
+  if (enabled.length === 1) {
+    const si = z.schedules.indexOf(enabled[0]);
+    await ieFetch('/api/zones/' + zi + '/schedules/' + si + '/run', 'POST', {});
+    return;
+  }
+  const existing = document.getElementById('_ie_run_picker');
+  if (existing) existing.remove();
+  const picker = document.createElement('div');
+  picker.id = '_ie_run_picker';
+  picker.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;z-index:600;min-width:200px;box-shadow:0 4px 20px rgba(0,0,0,.4)';
+  picker.innerHTML = '<p style="font-weight:700;margin-bottom:10px;color:var(--text)">Run which schedule?</p>';
+  z.schedules.forEach((s, si) => {
+    if (!s.enabled) return;
+    const b = document.createElement('button');
+    b.textContent = s.name || ('Schedule ' + (si + 1));
+    b.style.cssText = 'display:block;width:100%;margin:4px 0';
+    b.onclick = async () => { picker.remove(); await ieFetch('/api/zones/' + zi + '/schedules/' + si + '/run', 'POST', {}); };
+    picker.appendChild(b);
+  });
+  const cb = document.createElement('button');
+  cb.textContent = 'Cancel';
+  cb.style.cssText = 'display:block;width:100%;margin-top:8px';
+  cb.onclick = () => picker.remove();
+  picker.appendChild(cb);
+  document.body.appendChild(picker);
+}
 
 function ieConnectSSE() {
   const url = ieApi('/events');

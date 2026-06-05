@@ -4,14 +4,15 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px;
-  cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
-.ie-card:active { border-color: var(--accent); }
-.ie-card-name { font-size: 13px; font-weight: 700; color: var(--text); }
-.ie-card-sub  { font-size: 11px; color: var(--muted); }
+.ie-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.ie-card-head .icon-btn { min-height: 30px; padding: 4px 8px; font-size: 13px; flex-shrink: 0; }
+.ie-card-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.ie-card-detail { font-size: 11px; color: var(--muted); }
+.ie-card-remaining { font-size: 11px; color: var(--warn); font-weight: 600; }
 
 /* Status badges */
 .badge-stopped   { background: var(--surface2); color: var(--muted);   border: 1px solid var(--border); }
@@ -22,7 +23,15 @@
 .badge-cancelled { background: var(--surface2); color: var(--muted);   border: 1px solid var(--border); }
 .badge-finished  { background: var(--surface2); color: var(--muted);   border: 1px solid var(--border); }
 
-.ie-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.ie-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.ie-card-actions button { min-height: 36px; font-size: 11px; padding: 4px 12px; }
+
+/* Action button colours */
+.btn-run   { border-color: var(--accent) !important; color: var(--accent) !important; background: #0d2b1e !important; }
+.btn-stop  { border-color: var(--danger) !important; color: var(--danger) !important; background: #2b1010 !important; }
+.btn-pause { border-color: #b45309 !important;       color: #f59e0b !important;       background: #2b2210 !important; }
+.btn-auto  { border-color: var(--muted) !important;  color: var(--muted) !important; }
+.btn-hist  { border-color: var(--border) !important; color: var(--muted) !important; }
 .ie-card-actions button { min-height: 36px; font-size: 11px; padding: 4px 10px; }
 
 /* ===== CONFIG PANEL TABS ===== */
