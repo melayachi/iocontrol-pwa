@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>IOControl</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/scanner.css">
+  <link rel="stylesheet" href="css/irrigengine.css">
+</head>
+<body class="theme-dark">
+  <main id="main">
+    <div id="tab-scanner" class="tab-page active">
+      <header class="app-header">
+        <span class="app-header-title">&#9889; IOScanner</span>
+        <div class="app-header-right">
+          <span id="sc-live-dot" class="dot dot-grey" title="Offline"></span>
+          <span id="sc-mqtt-dot" class="dot dot-grey" title="MQTT"></span>
+          <button class="icon-btn" onclick="scShowMQTT()" title="MQTT Config">&#127758;</button>
+          <button class="icon-btn" onclick="scShowHardware()" title="Hardware Config">&#9881;</button>
+          <button class="icon-btn" onclick="scOpenPanel()" title="Scanner Config">&#9776;</button>
+        </div>
+      </header>
+      <div id="sc-live-root" class="tab-body"></div>
+    </div>
+    <div id="tab-irrigengine" class="tab-page">
+      <header class="app-header">
+        <span class="app-header-title">&#128167; IrrigEngine</span>
+        <div class="app-header-right">
+          <span id="ie-live-dot" class="dot dot-grey" title="Offline"></span>
+          <span id="ie-mqtt-dot" class="dot dot-grey" title="MQTT"></span>
+          <span id="ie-clock" class="ie-clock">--:--:--</span>
+          <button class="icon-btn" onclick="ieShowWifi()" title="Device Settings">&#9881;</button>
+        </div>
+      </header>
+      <div id="ie-live-root" class="tab-body">
+        <section>
+          <h2 class="section-title">Zones</h2>
+          <div id="ie-zones-grid" class="two-col-grid"></div>
+        </section>
+        <section style="margin-top:16px">
+          <h2 class="section-title">Systems</h2>
+          <div id="ie-systems-grid" class="two-col-grid"></div>
+        </section>
+      </div>
+    </div>
+    <div id="tab-settings" class="tab-page">
+      <header class="app-header">
+        <span class="app-header-title">&#9881; Settings</span>
+      </header>
+      <div class="tab-body settings-body" id="settings-body"></div>
+    </div>
+  </main>
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="switchTab('scanner')" id="nav-scanner">
+      <span class="nav-icon">&#9889;</span>
+      <span class="nav-label">IOScanner</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('irrigengine')" id="nav-irrigengine">
+      <span class="nav-icon">&#128167;</span>
+      <span class="nav-label">IrrigEngine</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('settings')" id="nav-settings">
+      <span class="nav-icon">&#9881;</span>
+      <span class="nav-label">Settings</span>
+    </button>
+  </nav>
+  <div id="fs-overlay" class="fs-overlay hidden" onclick="closeFsOverlay()"></div>
+  <div id="fs-panel" class="fs-panel hidden">
+    <div class="fs-panel-header">
+      <button class="back-btn" onclick="closeFsPanel()">&#8592; Back</button>
+      <h2 id="fs-panel-title">Panel</h2>
+    </div>
+    <div id="fs-panel-body" class="fs-panel-body"></div>
+  </div>
+  <div id="fs-modal" class="fs-modal hidden">
+    <div class="fs-modal-box">
+      <div class="fs-modal-header">
+        <h2 id="fs-modal-title">Modal</h2>
+        <button class="icon-btn" onclick="closeFsModal()">&#10005;</button>
+      </div>
+      <div id="fs-modal-body" class="fs-modal-body"></div>
+    </div>
+  </div>
+  <script src="js/app.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/scanner.js"></script>
+  <script src="js/irrigengine.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+  </script>
+</body>
+</html>
